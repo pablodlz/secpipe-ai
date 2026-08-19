@@ -67,8 +67,13 @@ para um humano, **exceto** o que as regras mandam escalar.
 
 ## Loop de trabalho
 ```text
-escrever -> `secpipe scan` (lê o JSON) -> corrigir -> verificar (rerun + testes) -> repetir até o gate passar
+`secpipe scan` (lê o JSON) -> `secpipe fix` (codemods determinísticos) -> corrigir o resto ->
+`secpipe verify` (gate + anti-supressão + testes) -> repetir até ACCEPT
 ```
-`secpipe scan` emite JSON no stdout (tool, rule_id, cwe, severity, file, line, message, fingerprint);
+- Cada achado traz `escalate: true|false` — se `true` (auth/cripto/segredo/crítico), **escale**, não corrija sozinha.
+- Antes de corrigir um CWE, `secpipe recall --cwe CWE-XXX` pode trazer um padrão que já funcionou.
+- Depois de um fix ACEITO, `secpipe remember --cwe ... --note "<padrão>"` (o PADRÃO, nunca código/segredo).
+
+`secpipe scan` emite JSON no stdout (tool, rule_id, cwe, severity, file, line, message, fingerprint, escalate);
 o gate vai no stderr e o exit code indica PASS(0)/FAIL(1).
 """

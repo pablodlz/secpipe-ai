@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from secpipe.adapters.bandit import BanditScanner
+from secpipe.adapters.codemodder import CodemodderFixer
 from secpipe.adapters.gitleaks import GitleaksScanner
 from secpipe.adapters.pip_audit import PipAuditScanner
 from secpipe.adapters.semgrep import SemgrepScanner
@@ -39,3 +40,8 @@ def build_policy(config: Config) -> GatePolicy:
 def build(config: Config | None = None) -> Orchestrator:
     cfg = config or Config.load()
     return Orchestrator(scanners=build_scanners(cfg), policy=build_policy(cfg))
+
+
+def build_fixer() -> CodemodderFixer:
+    """Fixer determinístico (Codemodder). Ponto de extensão p/ outros fixers no futuro."""
+    return CodemodderFixer()

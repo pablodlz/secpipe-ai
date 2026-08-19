@@ -1,7 +1,10 @@
 # FEAT-009 — Memória de fixes verificados (compõe entre projetos)
 
-> **Fase 3-4** · Base: `LESSON_RECALL` + `MOVE_LIBRARY` do Omni (§9, Reflexion). O diferencial de
-> auto-aprendizado: o motor **melhora sozinho** e **compõe entre projetos** (porque é compartilhado).
+> **Fase 3-4** · Base: `LESSON_RECALL` + `MOVE_LIBRARY` do Omni (§9, Reflexion).
+> **REORIENTADO (keyless):** o **substrato local** (`secpipe remember`/`recall`, store JSON) está
+> **implementado** — o agente registra o PADRÃO de um fix verificado e recupera por CWE. A **composição
+> ENTRE projetos/tenants** (o diferencial de auto-aprendizado compartilhado) é da **camada SaaS/compartilhada
+> (futuro)**, não do CLI local.
 
 ## Objetivo
 Acumular fixes que **passaram na verificação independente** e recuperá-los como candidatos para achados

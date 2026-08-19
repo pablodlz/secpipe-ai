@@ -1,17 +1,19 @@
-"""CLI machine-first do secpipe. Fase 0: `doctor` (real), `scan` (esqueleto), `version`.
+"""CLI machine-first do secpipe: doctor · scan · fix · verify · init · hook · remember/recall · version.
 
-Saída pensada para a IA consumir (JSON em `scan`). Exit code do `scan` reflete o gate."""
+Saída pensada para a IA consumir (JSON em `scan`). Exit code de `scan`/`verify` reflete o gate."""
 from __future__ import annotations
 
 import argparse
 import sys
 
 from secpipe import __version__
+from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.precommit import run as run_precommit
 from secpipe.application.use_cases.verify import verify as run_verify
-from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build
+from secpipe.domain.fix_memory import VerifiedFix
+from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build, build_fixer
 from secpipe.foundation.config import Config
 
 
@@ -53,6 +55,37 @@ def _cmd_hook() -> int:
     return run_precommit()
 
 
+def _cmd_fix(target: str, dry_run: bool) -> int:
+    outcome = build_fixer().run(target, dry_run=dry_run)
+    if not outcome.ran:
+        print(f"secpipe fix: nao executado — {outcome.detail}")
+        return 0
+    verbo = "aplicaria" if dry_run else "aplicou"
+    print(f"secpipe fix: {verbo} {outcome.changes} mudanca(s) em {outcome.files_changed} arquivo(s)")
+    for codemod in outcome.codemods:
+        print("  -", codemod)
+    print("Rode `secpipe scan`/`secpipe verify`; o restante fica para o agente corrigir.")
+    return 0
+
+
+def _cmd_remember(args: argparse.Namespace) -> int:
+    fix = VerifiedFix(cwe=args.cwe, tool=args.tool, rule_id=args.rule, note=args.note)
+    added = FixMemory().record(fix)
+    print("secpipe remember:", "registrado" if added else "ja existia", f"({args.cwe})")
+    return 0
+
+
+def _cmd_recall(cwe: str) -> int:
+    fixes = FixMemory().recall(cwe)
+    if not fixes:
+        print(f"secpipe recall: nenhum padrao verificado para {cwe}")
+        return 0
+    print(f"secpipe recall ({cwe}) — {len(fixes)} padrao(oes) (candidatos, ainda verificados):")
+    for fix in fixes:
+        print(f"  - [{fix.tool}/{fix.rule_id}] {fix.note}")
+    return 0
+
+
 def _cmd_verify(config_path: str | None, target: str, base_ref: str) -> int:
     cfg = Config.load(config_path)
     verdict = run_verify(build(cfg), target, base_ref=base_ref, test_command=cfg.test_command)
@@ -78,6 +111,16 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--no-hooks", action="store_true", help="nao instala o hook pre-commit")
     init.add_argument("--no-workflow", action="store_true", help="nao grava o workflow do GitHub")
     sub.add_parser("hook", help="checagem de pre-commit (anti-supressao + segredo staged)")
+    rem = sub.add_parser("remember", help="registra um fix VERIFICADO na memoria (padrao, nao codigo)")
+    rem.add_argument("--cwe", required=True, help="ex.: CWE-89")
+    rem.add_argument("--tool", default="", help="scanner de origem")
+    rem.add_argument("--rule", default="", help="rule_id")
+    rem.add_argument("--note", default="", help="padrao do fix (ex.: 'usar query parametrizada')")
+    rec = sub.add_parser("recall", help="recupera padroes de fix verificados por CWE")
+    rec.add_argument("--cwe", required=True, help="ex.: CWE-89")
+    fix = sub.add_parser("fix", help="aplica fixes deterministicos (codemods) — o resto e do agente")
+    fix.add_argument("target", nargs="?", default=".", help="diretorio (default: .)")
+    fix.add_argument("--dry-run", action="store_true", help="mostra o que mudaria, sem escrever")
     ver = sub.add_parser("verify", help="juiz deterministico do fix (gate + anti-supressao + testes)")
     ver.add_argument("target", nargs="?", default=".", help="diretorio (default: .)")
     ver.add_argument("--config", default=None, help="caminho do .secpipe.yml")
@@ -96,6 +139,12 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_init(args)
     if args.command == "hook":
         return _cmd_hook()
+    if args.command == "remember":
+        return _cmd_remember(args)
+    if args.command == "recall":
+        return _cmd_recall(args.cwe)
+    if args.command == "fix":
+        return _cmd_fix(args.target, args.dry_run)
     if args.command == "verify":
         return _cmd_verify(args.config, args.target, args.base_ref)
     if args.command == "version":

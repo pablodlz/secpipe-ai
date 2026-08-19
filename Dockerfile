@@ -8,8 +8,8 @@ ARG GITLEAKS_SHA256=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f24
 ARG TRIVY_VERSION=0.74.0
 ARG TRIVY_SHA256=2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
 
-# Scanners via pip: SAST multi-linguagem (semgrep) + Python (bandit, pip-audit).
-RUN pip install --no-cache-dir semgrep bandit pip-audit
+# Scanners via pip: SAST multi-linguagem (semgrep) + Python (bandit, pip-audit) + fixer (codemodder).
+RUN pip install --no-cache-dir semgrep bandit pip-audit codemodder
 
 # gitleaks + trivy: binários Linux pinados, com verificação de sha256. ca-certificates fica (trivy baixa
 # a vuln-DB em runtime); curl é removido depois para enxugar a imagem.

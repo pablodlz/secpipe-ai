@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "secpipe"
-version = "0.2.0"                 # Fase 2 — adocao (init/hook) + imagem completa
+version = "0.3.0"                 # Fase 3 — auto-fix DRV (fix/verify/abstention/memoria)
 description = "Motor de segurança operado por IA — a melhor esteira DevSecOps de custo zero"
 requires-python = ">=3.11"
 readme = "README.md"

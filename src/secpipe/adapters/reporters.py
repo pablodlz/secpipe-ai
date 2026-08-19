@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from secpipe.domain import Report, Severity
+from secpipe.domain.abstention import escalates
 
 # nossa severidade -> SARIF level + security-severity numérica (convenção GitHub)
 _LEVEL = {
@@ -37,6 +38,7 @@ class JsonReporter:
                     "line": f.line,
                     "message": f.message,
                     "fingerprint": f.fingerprint,
+                    "escalate": escalates(f.cwe, f.severity),
                 }
                 for f in report.findings
             ],

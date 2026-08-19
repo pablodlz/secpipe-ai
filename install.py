@@ -58,13 +58,13 @@ def install_python_deps(py: Path, no_semgrep: bool) -> None:
     if no_semgrep:
         return
     if platform.system() == "Windows":
-        print("[!] semgrep nao roda nativo no Windows — pulando (use o container Linux/CI).")
+        print("[!] semgrep/codemodder nao rodam nativo no Windows — pulando (use o container Linux/CI).")
         return
     try:
-        print("[pip] instalando semgrep")
-        _run([str(py), "-m", "pip", "install", "--quiet", "semgrep"])
+        print("[pip] instalando semgrep + codemodder")
+        _run([str(py), "-m", "pip", "install", "--quiet", "semgrep", "codemodder"])
     except subprocess.CalledProcessError:
-        print("[!] falha ao instalar semgrep — siga sem ele (opcional).")
+        print("[!] falha ao instalar semgrep/codemodder — siga sem eles (opcionais).")
 
 
 def _needles() -> dict[str, tuple[tuple[str, ...], str]]:
