@@ -1,12 +1,15 @@
-"""Adapter Semgrep CE (SAST multi-linguagem). Fase 0: esqueleto (parsing SARIF vem na Fase 1).
+"""Adapter Semgrep CE (SAST multi-linguagem) — emite SARIF, normalizado por parse_sarif.
 
-Nota (ADR-0003): Semgrep CE é free porém limitado a arquivo único; combinar com Bandit/ASH."""
+ADR-0003: Semgrep CE é free porém limitado a arquivo único; combinar com Bandit/ASH. O ruleset é
+configurável (`--config`); default `auto` (regras da comunidade). Cross-platform (Windows/Linux)."""
 from __future__ import annotations
 
 from secpipe.adapters.base import tool_on_path
-from secpipe.domain import ScanResult, ScanStatus
+from secpipe.adapters.sarif import run_sarif_scanner
+from secpipe.domain import ScanResult
 
 BINARY = "semgrep"
+_CONFIG = "auto"  # tunável na Fase 2 via .secpipe.yml
 
 
 class SemgrepScanner:
@@ -16,5 +19,7 @@ class SemgrepScanner:
         return tool_on_path(BINARY)
 
     def scan(self, target: str) -> ScanResult:
-        # Fase 1: `semgrep --sarif` -> normalizar SARIF -> Finding[].
-        return ScanResult(self.name, ScanStatus.SKIPPED, (), "execução real: Fase 1")
+        return run_sarif_scanner(
+            self.name, BINARY,
+            ["scan", "--sarif", "--quiet", "--config", _CONFIG, target],
+        )

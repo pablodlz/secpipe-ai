@@ -6,8 +6,8 @@
 > **Agnóstico de linguagem** (qualquer stack — roda como container, sem exigir Python no consumidor) e
 > **agnóstico de IA** (qualquer agente: Claude, Cursor, Copilot, Aider…; qualquer provedor: Claude/OpenAI/Gemini/local).
 > Meta: ser **a melhor opção de segurança de custo zero do mercado**, compondo o melhor do free existente.
-> Status: **FASE 0 — FOUNDATION** (fundação + esqueleto rodável e testado; **sem** execução real dos
-> scanners nem loop de auto-fix ainda).
+> Status: **FASE 1 — scanners reais** (executa gitleaks/Semgrep/Trivy, normaliza para o contrato/SARIF e
+> aplica o gate). **Sem** o loop de auto-fix da IA (DRV) ainda — está especificado em `docs/specs/features/`.
 
 Este projeto é o **alicerce comum de segurança** dos demais projetos. A ideia: deixar o motor pronto,
 depois **plugá-lo em cada projeto**. Por isso, todos os outros projetos dependem deste.
@@ -49,13 +49,16 @@ O motor é empacotado como **imagem container** (roda em qualquer CI e local) e 
 
 Exemplos em [`examples/consumer/`](examples/consumer/).
 
-## Rodar o esqueleto (Fase 0)
+## Rodar (Windows e Linux)
 
 ```bash
 pip install -e ".[dev]"
-secpipe doctor      # lista quais ferramentas estão disponíveis no PATH (real)
-secpipe scan        # roda o pipeline (Fase 0: adapters ainda são esqueleto — reportam "skipped")
+secpipe doctor              # quais ferramentas estão disponíveis no PATH (gitleaks/semgrep/trivy)
+secpipe scan .              # roda os scanners disponíveis, normaliza e aplica o gate (JSON p/ a IA)
+secpipe scan . --format sarif   # saída SARIF p/ o GitHub code scanning
 ```
+
+Ferramentas ausentes viram `skipped` (não quebram); um scanner que **erra** aciona o gate **fail-closed**.
 
 ## Por onde começar a ler
 
@@ -67,10 +70,10 @@ secpipe scan        # roda o pipeline (Fase 0: adapters ainda são esqueleto —
 6. [`docs/specs/06-prior-art-and-references.md`](docs/specs/06-prior-art-and-references.md) — mercado + papers.
 7. [`docs/specs/07-strategies-from-omni-pentest.md`](docs/specs/07-strategies-from-omni-pentest.md) — estratégias reaproveitadas (crítico).
 
-## O que NÃO existe nesta fase
+## O que NÃO existe ainda
 
-Execução/parsing real dos scanners, DAST, IaC scanning, o loop de auto-fix da IA, e a imagem publicada.
-Tudo isso está **arquitetado e documentado** como próximas fases — não implementado.
+O **loop de auto-fix da IA** (Detect→Repair→Verify), o verificador independente, DAST, IaC scanning e a
+imagem publicada. Tudo **especificado** em [`docs/specs/features/`](docs/specs/features/) (FEAT-001..010) — próximas fases.
 
 ---
 *Open-source sob [Apache-2.0](LICENSE). Fundação (Fase 0); ainda não é um motor pronto para produção.*

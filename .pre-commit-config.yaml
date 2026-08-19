@@ -18,7 +18,7 @@ repos:
   - repo: local
     hooks:
       - id: no-suppression
-        name: "proibir supressao de achados (# nosec / # noqa / nosemgrep)"
-        entry: bash -c '! git diff --cached -U0 | grep -E "^\+.*(# *nosec|# *noqa|nosemgrep)" || (echo "Supressao de achado detectada no diff — resolva a causa, nao silencie (ADR-0008)."; exit 1)'
+        name: "proibir supressao de achados no diff (ADR-0008)"
+        entry: python scripts/check_no_suppression.py
         language: system
         pass_filenames: false

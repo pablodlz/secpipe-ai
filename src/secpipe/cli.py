@@ -7,7 +7,7 @@ import argparse
 import sys
 
 from secpipe import __version__
-from secpipe.adapters.reporters import JsonReporter
+from secpipe.adapters.reporters import JsonReporter, SarifReporter
 from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build
 from secpipe.foundation.config import Config
 
@@ -19,15 +19,16 @@ def _cmd_doctor() -> int:
         available = factory().is_available()
         mark = "OK " if available else "-- "
         print(f"  [{mark}] {name}{'' if available else '  (nao encontrado no PATH)'}")
-    print("\nFase 0: 'scan' ainda nao executa os scanners (execucao real: Fase 1).")
+    print("\n'secpipe scan' executa os scanners disponiveis, normaliza (SARIF) e aplica o gate.")
     return 0
 
 
-def _cmd_scan(config_path: str | None, target: str) -> int:
+def _cmd_scan(config_path: str | None, target: str, fmt: str) -> int:
     cfg = Config.load(config_path)
     orchestrator = build(cfg)
     report, decision = orchestrator.run(target)
-    print(JsonReporter().render(report))
+    reporter = SarifReporter() if fmt == "sarif" else JsonReporter()
+    print(reporter.render(report))
     verdict = "PASS" if decision.passed else "FAIL"
     print(f"\nGATE: {verdict} - {decision.reason}", file=sys.stderr)
     return 0 if decision.passed else 1
@@ -37,9 +38,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="secpipe", description="Motor de seguranca operado por IA.")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor", help="lista ferramentas disponiveis no PATH")
-    scan = sub.add_parser("scan", help="roda o pipeline e aplica o gate (Fase 0: esqueleto)")
+    scan = sub.add_parser("scan", help="roda os scanners, normaliza e aplica o gate")
     scan.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
     scan.add_argument("--config", default=None, help="caminho do .secpipe.yml (default: auto)")
+    scan.add_argument("--format", dest="fmt", choices=["json", "sarif"], default="json",
+                      help="formato de saida (default: json para a IA; sarif para code scanning)")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -49,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return _cmd_doctor()
     if args.command == "scan":
-        return _cmd_scan(args.config, args.target)
+        return _cmd_scan(args.config, args.target, args.fmt)
     if args.command == "version":
         print(__version__)
         return 0

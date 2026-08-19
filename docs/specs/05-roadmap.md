@@ -6,8 +6,8 @@
 
 | Fase | Entrega | Portões |
 | --- | --- | --- |
-| **0 — Foundation** *(atual)* | estrutura, specs, ADRs, contrato, política, CLI esqueleto, prior-art | nada escaneia/corrige de verdade |
-| **1 — Motor de scan** | compor tools free (ASH/Semgrep CE/Bandit/pip-audit/Trivy/gitleaks) + normalizar p/ SARIF + dedup | multi-linguagem; saída JSON p/ IA |
+| **0 — Foundation** ✅ | estrutura, specs, ADRs, contrato, política, CLI, prior-art | concluída |
+| **1 — Motor de scan** *(atual)* | executar gitleaks/Semgrep/Trivy + normalizar SARIF + dedup + reporter JSON/SARIF | ✅ execução real + parser SARIF; falta empacotar imagem/mais scanners |
 | **2 — Gate + adoção** | política fail-closed; `secpipe init` (AGENTS.md + hooks + workflow); supply-chain (Scorecard/Harden-Runner/Secure-Repo) | imposição agent-independent |
 | **3 — Auto-fix (DRV)** | fix determinístico (Codemodder) → fix IA (provider-agnostic) → **verificador independente** + abstention | fix só com teste+verificação |
 | **4 — Integração** | aplicar aos projetos (bots/Clavis) e, opcional, Omni; exportar DefectDojo | por-projeto |
@@ -21,11 +21,13 @@ abstração de IA, grounding, loop de auto-fix, memória de fixes e adoção. Ve
 
 ## Próximos passos imediatos (Fase 1)
 
-1. Empacotar o **container** do motor (imagem com CLI + tools free).
-2. Implementar 2–3 `ScannerPort` reais (gitleaks + Semgrep CE + Trivy) com parsing p/ o contrato.
-3. Avaliar **usar ASH como orquestrador de base** vs. orquestração própria (decisão medida).
-4. `ReporterPort` SARIF + JSON, com **dedup por fingerprint**.
-5. `git init` + branch protection + Scorecard/Harden-Runner/Secure-Repo no próprio repo (dogfooding).
+- [x] Implementar `ScannerPort` reais (gitleaks + Semgrep + Trivy) com parsing p/ o contrato.
+- [x] `ReporterPort` SARIF + JSON, com **dedup por fingerprint**.
+- [x] Execução segura e cross-platform (Windows/Linux): subprocess sem shell, path resolvido, UTF-8.
+- [ ] Empacotar o **container** do motor (Dockerfile existe; publicar imagem ghcr).
+- [ ] Adicionar Bandit (SAST Python) e pip-audit (SCA Python) como adapters.
+- [ ] Avaliar **usar ASH como orquestrador de base** vs. orquestração própria (decisão medida).
+- [ ] `git init` + branch protection + Scorecard/Harden-Runner/Secure-Repo no próprio repo (dogfooding).
 
 ## Pontos em aberto
 

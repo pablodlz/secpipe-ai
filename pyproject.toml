@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "secpipe"
-version = "0.0.0"                 # Fase 0 — fundação + esqueleto
+version = "0.1.0"                 # Fase 1 — scanners reais (SARIF)
 description = "Motor de segurança operado por IA — a melhor esteira DevSecOps de custo zero"
 requires-python = ">=3.11"
 readme = "README.md"
@@ -29,6 +29,10 @@ src = ["src", "tests"]
 select = ["E", "F", "B", "S", "I", "UP"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+# secpipe roda scanners como subprocesso — é o propósito do motor. A execução é segura e centralizada
+# em adapters/base.py::run_tool (argumentos em lista, shell=False, binário resolvido por caminho
+# absoluto). Decisão revisada e DOCUMENTADA no nível de projeto, não supressão inline (ADR-0008/FEAT-003).
+"src/secpipe/adapters/base.py" = ["S603", "S607"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -41,3 +45,5 @@ addopts = "-ra"
 
 [tool.bandit]
 exclude_dirs = ["tests"]
+# subprocess legítimo e seguro (ver adapters/base.py::run_tool) — decisão revisada, não inline.
+skips = ["B603", "B607"]

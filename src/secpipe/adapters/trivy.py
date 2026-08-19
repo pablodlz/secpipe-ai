@@ -1,8 +1,11 @@
-"""Adapter Trivy (SCA + IaC + imagem + secret, multi-linguagem). Fase 0: esqueleto."""
+"""Adapter Trivy (SCA + IaC + imagem + secret, multi-linguagem) — emite SARIF, normalizado por parse_sarif.
+
+`trivy fs` escaneia o filesystem do projeto. Cross-platform (Windows/Linux)."""
 from __future__ import annotations
 
 from secpipe.adapters.base import tool_on_path
-from secpipe.domain import ScanResult, ScanStatus
+from secpipe.adapters.sarif import run_sarif_scanner
+from secpipe.domain import ScanResult
 
 BINARY = "trivy"
 
@@ -14,5 +17,7 @@ class TrivyScanner:
         return tool_on_path(BINARY)
 
     def scan(self, target: str) -> ScanResult:
-        # Fase 1: `trivy fs --format sarif` -> normalizar -> Finding[].
-        return ScanResult(self.name, ScanStatus.SKIPPED, (), "execução real: Fase 1")
+        return run_sarif_scanner(
+            self.name, BINARY,
+            ["fs", "--format", "sarif", "--quiet", target],
+        )
