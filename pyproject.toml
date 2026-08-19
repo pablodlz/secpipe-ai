@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "secpipe"
-version = "0.1.0"                 # Fase 1 — scanners reais (SARIF)
+version = "0.2.0"                 # Fase 2 — adocao (init/hook) + imagem completa
 description = "Motor de segurança operado por IA — a melhor esteira DevSecOps de custo zero"
 requires-python = ">=3.11"
 readme = "README.md"

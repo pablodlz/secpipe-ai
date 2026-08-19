@@ -1,27 +1,24 @@
-# Modo A (referenciado): outro projeto consome ASSIM, pinando por tag/SHA:
+# Modo A (referenciado): outro projeto consome ASSIM, pinando a tag/SHA:
 #   jobs: { secpipe: { uses: pablodlz/secpipe-ai/.github/workflows/secpipe.reusable.yml@v1 } }
-# Fase 0: esqueleto. Fase 1 roda a imagem publicada e sobe SARIF ao code scanning.
+# Roda a IMAGEM publicada (todos os scanners embutidos: gitleaks/semgrep/trivy/bandit/pip-audit).
 name: secpipe-reusable
 on:
   workflow_call:
     inputs:
-      target:   { type: string, default: "." }
-      config:   { type: string, default: ".secpipe.yml" }
-    # secrets: (fase 3) chaves de IA para o auto-fix, passadas pelo consumidor
+      target: { type: string, default: "." }
+      config: { type: string, default: ".secpipe.yml" }
+      image:  { type: string, default: "ghcr.io/pablodlz/secpipe-ai:latest" }
+    # secrets: (Fase 3) chaves de IA para o auto-fix, passadas pelo consumidor
 permissions:
   contents: read
 jobs:
   secpipe:
     runs-on: ubuntu-latest
     steps:
-      - uses: step-security/harden-runner@v2
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
         with: { egress-policy: audit }
-      - uses: actions/checkout@v4
-      # Fase 1: usar a imagem versionada (motor único), ex.:
-      #   - run: docker run --rm -v "$PWD:/work" ghcr.io/pablodlz/secpipe-ai:v1 scan /work
-      # Fase 0 (fallback pip):
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
-      - run: pip install secpipe || pip install "git+https://github.com/pablodlz/secpipe-ai@v0"
-      - name: secpipe scan (gate)
-        run: secpipe scan "${{ inputs.target }}" --config "${{ inputs.config }}"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: secpipe scan (via imagem — todos os scanners)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work \
+            "${{ inputs.image }}" scan "${{ inputs.target }}" --config "${{ inputs.config }}"

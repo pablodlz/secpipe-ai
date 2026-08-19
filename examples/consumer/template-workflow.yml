@@ -9,4 +9,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Pina a imagem por tag/digest (você controla quando atualizar):
-      - run: docker run --rm -v "$PWD:/work" ghcr.io/pablodlz/secpipe-ai:v1 scan /work
+      - run: docker run --rm -v "$PWD:/work" ghcr.io/pablodlz/secpipe-ai:latest scan /work
