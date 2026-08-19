@@ -7,7 +7,7 @@
 | Fase | Entrega | Portões |
 | --- | --- | --- |
 | **0 — Foundation** ✅ | estrutura, specs, ADRs, contrato, política, CLI, prior-art | concluída |
-| **1 — Motor de scan** *(atual)* | executar gitleaks/Semgrep/Trivy + normalizar SARIF + dedup + reporter JSON/SARIF | ✅ execução real + parser SARIF; falta empacotar imagem/mais scanners |
+| **1 — Motor de scan** *(atual)* | 5 scanners (gitleaks/Semgrep/Trivy/Bandit/pip-audit) + SARIF + dedup + reporter | ✅ execução real (dogfood) + gate verde; falta empacotar a imagem |
 | **2 — Gate + adoção** | política fail-closed; `secpipe init` (AGENTS.md + hooks + workflow); supply-chain (Scorecard/Harden-Runner/Secure-Repo) | imposição agent-independent |
 | **3 — Auto-fix (DRV)** | fix determinístico (Codemodder) → fix IA (provider-agnostic) → **verificador independente** + abstention | fix só com teste+verificação |
 | **4 — Integração** | aplicar aos projetos (bots/Clavis) e, opcional, Omni; exportar DefectDojo | por-projeto |
@@ -22,12 +22,17 @@ abstração de IA, grounding, loop de auto-fix, memória de fixes e adoção. Ve
 ## Próximos passos imediatos (Fase 1)
 
 - [x] Implementar `ScannerPort` reais (gitleaks + Semgrep + Trivy) com parsing p/ o contrato.
+- [x] Adicionar **Bandit** (SAST Python) e **pip-audit** (SCA Python) como adapters.
 - [x] `ReporterPort` SARIF + JSON, com **dedup por fingerprint**.
 - [x] Execução segura e cross-platform (Windows/Linux): subprocess sem shell, path resolvido, UTF-8.
-- [ ] Empacotar o **container** do motor (Dockerfile existe; publicar imagem ghcr).
-- [ ] Adicionar Bandit (SAST Python) e pip-audit (SCA Python) como adapters.
+- [x] **Dogfood real:** gitleaks + trivy + bandit executados de verdade sobre `src`; gate PASS.
+- [x] Gate de qualidade verde no próprio código (ruff + mypy strict + bandit + 22 testes).
+- [ ] Empacotar/publicar a **imagem container** (Dockerfile pronto; build no CI/Docker — Docker indisponível localmente).
 - [ ] Avaliar **usar ASH como orquestrador de base** vs. orquestração própria (decisão medida).
-- [ ] `git init` + branch protection + Scorecard/Harden-Runner/Secure-Repo no próprio repo (dogfooding).
+- [ ] Branch protection + Scorecard/Harden-Runner/Secure-Repo ativos no repo (config do GitHub).
+
+> **Nota Windows:** `semgrep` não roda nativamente no Windows (limitação do próprio tool) — no Windows
+> ele fica `skipped`; roda no **container Linux** e no **CI**. gitleaks/trivy/bandit/pip-audit rodam nos dois.
 
 ## Pontos em aberto
 

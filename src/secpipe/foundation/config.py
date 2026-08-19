@@ -18,12 +18,12 @@ class Config:
     languages: tuple[str, ...] = field(default_factory=tuple)  # vazio = auto-detect (Fase 1)
 
     @staticmethod
-    def default() -> "Config":
+    def default() -> Config:
         """Zero-config: o modo plug-and-play. Retorna os defaults fortes."""
         return Config()
 
     @staticmethod
-    def from_dict(data: dict[str, object]) -> "Config":
+    def from_dict(data: dict[str, object]) -> Config:
         d = data or {}
         scanners = d.get("scanners")
         languages = d.get("languages")
@@ -35,7 +35,7 @@ class Config:
         )
 
     @staticmethod
-    def load(path: str | None = None) -> "Config":
+    def load(path: str | None = None) -> Config:
         """Carrega `.secpipe.yml` se existir; senão, default (plug-and-play)."""
         candidate = path or ".secpipe.yml"
         if not os.path.isfile(candidate):

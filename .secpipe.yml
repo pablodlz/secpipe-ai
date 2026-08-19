@@ -1,0 +1,4 @@
+# Config do PRÓPRIO repo (dogfooding — ADR-0009). Habilita o conjunto Python + multi-linguagem.
+scanners: [gitleaks, semgrep, bandit, trivy]
+block_severity: HIGH
+languages: [python]

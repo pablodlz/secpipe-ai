@@ -1,7 +1,9 @@
 """Composition Root — único lugar que conhece adapters concretos. Monta o motor a partir da config."""
 from __future__ import annotations
 
+from secpipe.adapters.bandit import BanditScanner
 from secpipe.adapters.gitleaks import GitleaksScanner
+from secpipe.adapters.pip_audit import PipAuditScanner
 from secpipe.adapters.semgrep import SemgrepScanner
 from secpipe.adapters.trivy import TrivyScanner
 from secpipe.application.orchestrator import Orchestrator
@@ -10,10 +12,14 @@ from secpipe.domain import GatePolicy, Severity
 from secpipe.foundation.config import Config
 
 # Registro nome -> fábrica de adapter. Novo scanner entra aqui (ponto de extensão).
+# multi-linguagem: gitleaks/semgrep/trivy. Específicos de Python: bandit/pip-audit (opt-in via config;
+# a Fase 2 habilita por auto-detecção de linguagem).
 _SCANNER_REGISTRY: dict[str, type] = {
     "gitleaks": GitleaksScanner,
     "semgrep": SemgrepScanner,
     "trivy": TrivyScanner,
+    "bandit": BanditScanner,
+    "pip-audit": PipAuditScanner,
 }
 
 

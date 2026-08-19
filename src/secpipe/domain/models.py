@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import IntEnum, StrEnum
 
 
 class Severity(IntEnum):
@@ -15,7 +15,7 @@ class Severity(IntEnum):
     CRITICAL = 4
 
     @classmethod
-    def parse(cls, value: str) -> "Severity":
+    def parse(cls, value: str) -> Severity:
         """Fail-closed: severidade desconhecida é tratada como a MAIS alta (não subestimar risco)."""
         try:
             return cls[value.strip().upper()]
@@ -23,7 +23,7 @@ class Severity(IntEnum):
             return cls.CRITICAL
 
 
-class ScanStatus(str, Enum):
+class ScanStatus(StrEnum):
     OK = "ok"
     SKIPPED = "skipped"   # ferramenta ausente / Fase 0
     ERROR = "error"       # falha ao rodar -> gate fail-closed
