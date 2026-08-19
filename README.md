@@ -49,11 +49,21 @@ O motor é empacotado como **imagem container** (roda em qualquer CI e local) e 
 
 Exemplos em [`examples/consumer/`](examples/consumer/).
 
+## Setup (Windows e Linux)
+
+Um comando na raiz cria o venv, instala o pacote + dev tools e baixa os scanners (gitleaks/trivy) em `./tools`:
+
+```bash
+python install.py          # ou:  ./setup.sh  (Linux/macOS)  |  .\setup.ps1  (Windows)
+```
+
+Flags: `--no-venv` (usa o Python atual), `--no-tools` (não baixa binários), `--no-semgrep`.
+`semgrep` é instalado via pip em Linux/macOS (não roda nativo no Windows — use o container).
+
 ## Rodar (Windows e Linux)
 
 ```bash
-pip install -e ".[dev]"
-secpipe doctor              # quais ferramentas estão disponíveis no PATH (gitleaks/semgrep/trivy)
+secpipe doctor              # quais ferramentas estão disponíveis no PATH
 secpipe scan .              # roda os scanners disponíveis, normaliza e aplica o gate (JSON p/ a IA)
 secpipe scan . --format sarif   # saída SARIF p/ o GitHub code scanning
 ```

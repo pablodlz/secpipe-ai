@@ -27,9 +27,10 @@ abstração de IA, grounding, loop de auto-fix, memória de fixes e adoção. Ve
 - [x] Execução segura e cross-platform (Windows/Linux): subprocess sem shell, path resolvido, UTF-8.
 - [x] **Dogfood real:** gitleaks + trivy + bandit executados de verdade sobre `src`; gate PASS.
 - [x] Gate de qualidade verde no próprio código (ruff + mypy strict + bandit + 22 testes).
-- [ ] Empacotar/publicar a **imagem container** (Dockerfile pronto; build no CI/Docker — Docker indisponível localmente).
-- [ ] Avaliar **usar ASH como orquestrador de base** vs. orquestração própria (decisão medida).
-- [ ] Branch protection + Scorecard/Harden-Runner/Secure-Repo ativos no repo (config do GitHub).
+- [x] **Setup reproduzível na raiz**: `install.py` (+ `setup.sh`/`setup.ps1`) cria venv, instala deps e baixa scanners.
+- [x] **Publicar imagem**: workflow `publish-image.yml` (dispara em tag `vX.Y.Z`; o CI faz o build, sem Docker local).
+- [x] **ASH**: decidido no [ADR-0010](../adr/0010-orchestration-own-not-ash.md) — orquestração própria; ASH como adapter opcional.
+- [~] **Branch protection**: `scripts/setup_github_hardening.sh` pronto (acionar ao migrar p/ PR — não ativado agora p/ não bloquear push direto). Scorecard/Harden-Runner já rodam no CI.
 
 > **Nota Windows:** `semgrep` não roda nativamente no Windows (limitação do próprio tool) — no Windows
 > ele fica `skipped`; roda no **container Linux** e no **CI**. gitleaks/trivy/bandit/pip-audit rodam nos dois.

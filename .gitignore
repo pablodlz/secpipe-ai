@@ -28,3 +28,6 @@ reports/
 Thumbs.db
 .idea/
 .vscode/
+
+# scanners baixados pelo install.py (nao versionar)
+tools/

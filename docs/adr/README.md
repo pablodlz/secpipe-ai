@@ -11,3 +11,4 @@
 | [0007](0007-ai-and-language-agnostic.md) | Agnóstico de IA e de linguagem | Aceito (Fase 0) |
 | [0008](0008-ai-operator-guardrails.md) | Operador = IA + guardrails anti-self-gaming | Aceito (Fase 0) |
 | [0009](0009-plug-and-play-and-dogfooding.md) | Plug-and-play (defaults fortes) + dogfooding | Aceito (Fase 0) |
+| [0010](0010-orchestration-own-not-ash.md) | Orquestração própria; ASH como adapter opcional | Aceito (Fase 1) |
