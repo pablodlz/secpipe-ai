@@ -7,8 +7,8 @@
 | Fase | Entrega | Portões |
 | --- | --- | --- |
 | **0 — Foundation** ✅ | estrutura, specs, ADRs, contrato, política, CLI, prior-art | concluída |
-| **1 — Motor de scan** *(atual)* | 5 scanners (gitleaks/Semgrep/Trivy/Bandit/pip-audit) + SARIF + dedup + reporter | ✅ execução real (dogfood) + gate verde; falta empacotar a imagem |
-| **2 — Gate + adoção** | política fail-closed; `secpipe init` (AGENTS.md + hooks + workflow); supply-chain (Scorecard/Harden-Runner/Secure-Repo) | imposição agent-independent |
+| **1 — Motor de scan** ✅ | 5 scanners (gitleaks/Semgrep/Trivy/Bandit/pip-audit) + SARIF + dedup + reporter | concluída (dogfood real, CI verde, imagem pública) |
+| **2 — Gate + adoção** *(atual)* | `secpipe init` (detecção de linguagem → .secpipe.yml + AGENTS.md + hook + workflow) + `secpipe hook` | ✅ init/hook + imposição agent-independent; supply-chain já ativo |
 | **3 — Auto-fix (DRV)** | fix determinístico (Codemodder) → fix IA (provider-agnostic) → **verificador independente** + abstention | fix só com teste+verificação |
 | **4 — Integração** | aplicar aos projetos (bots/Clavis) e, opcional, Omni; exportar DefectDojo | por-projeto |
 

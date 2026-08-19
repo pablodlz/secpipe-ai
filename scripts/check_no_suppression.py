@@ -8,7 +8,14 @@ from __future__ import annotations
 import subprocess
 
 _SUPPRESSORS = ("# nosec", "#nosec", "# noqa", "#noqa", "nosemgrep")
-_IGNORE = {"scripts/check_no_suppression.py", ".pre-commit-config.yaml"}
+_IGNORE = {
+    "scripts/check_no_suppression.py",
+    ".pre-commit-config.yaml",
+    # citam os tokens como DADO/REGRA (dono do padrão + template do AGENTS.md), não como supressão real:
+    "src/secpipe/application/use_cases/precommit.py",
+    "src/secpipe/application/use_cases/_init_resources.py",
+    "tests/unit/test_precommit.py",   # fixture contém '# nosec' de propósito (testa o detector)
+}
 
 
 def main() -> int:

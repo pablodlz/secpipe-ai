@@ -6,8 +6,9 @@
 > **Agnóstico de linguagem** (qualquer stack — roda como container, sem exigir Python no consumidor) e
 > **agnóstico de IA** (qualquer agente: Claude, Cursor, Copilot, Aider…; qualquer provedor: Claude/OpenAI/Gemini/local).
 > Meta: ser **a melhor opção de segurança de custo zero do mercado**, compondo o melhor do free existente.
-> Status: **FASE 1 — scanners reais** (executa gitleaks/Semgrep/Trivy, normaliza para o contrato/SARIF e
-> aplica o gate). **Sem** o loop de auto-fix da IA (DRV) ainda — está especificado em `docs/specs/features/`.
+> Status: **FASE 2 — adoção** (`secpipe init` instala config + `AGENTS.md` + hook agent-independent +
+> workflow; sobre a base da Fase 1: 5 scanners reais + normalização SARIF + gate). **Sem** o loop de
+> auto-fix da IA (DRV) ainda — Fase 3, especificado em `docs/specs/features/`.
 
 Este projeto é o **alicerce comum de segurança** dos demais projetos. A ideia: deixar o motor pronto,
 depois **plugá-lo em cada projeto**. Por isso, todos os outros projetos dependem deste.
@@ -69,6 +70,15 @@ secpipe scan . --format sarif   # saída SARIF p/ o GitHub code scanning
 ```
 
 Ferramentas ausentes viram `skipped` (não quebram); um scanner que **erra** aciona o gate **fail-closed**.
+
+## Adotar num projeto (Fase 2)
+
+```bash
+secpipe init      # detecta linguagem -> grava .secpipe.yml + AGENTS.md (+shim) + workflow, instala o hook pre-commit
+```
+
+O hook (`secpipe hook`) bloqueia **supressão de achado** e **segredo** no `git commit` — imposição
+**agent-independent** (funciona com qualquer IA). O `AGENTS.md` é o contexto de segurança que a IA carrega antes de codar.
 
 ## Por onde começar a ler
 

@@ -8,6 +8,8 @@ import sys
 
 from secpipe import __version__
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
+from secpipe.application.use_cases.init import init as run_init
+from secpipe.application.use_cases.precommit import run as run_precommit
 from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build
 from secpipe.foundation.config import Config
 
@@ -34,6 +36,22 @@ def _cmd_scan(config_path: str | None, target: str, fmt: str) -> int:
     return 0 if decision.passed else 1
 
 
+def _cmd_init(args: argparse.Namespace) -> int:
+    result = run_init(
+        args.target, force=args.force, shims=not args.no_shims,
+        hooks=not args.no_hooks, workflow=not args.no_workflow,
+    )
+    print("secpipe init:")
+    for action in result.actions:
+        print("  -", action)
+    print("\nProximo: `secpipe doctor` e `secpipe scan .`. A IA deve carregar o AGENTS.md antes de codar.")
+    return 0
+
+
+def _cmd_hook() -> int:
+    return run_precommit()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="secpipe", description="Motor de seguranca operado por IA.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -43,6 +61,13 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--config", default=None, help="caminho do .secpipe.yml (default: auto)")
     scan.add_argument("--format", dest="fmt", choices=["json", "sarif"], default="json",
                       help="formato de saida (default: json para a IA; sarif para code scanning)")
+    init = sub.add_parser("init", help="adota o secpipe no projeto (config + AGENTS.md + hook + workflow)")
+    init.add_argument("target", nargs="?", default=".", help="diretorio do projeto (default: .)")
+    init.add_argument("--force", action="store_true", help="sobrescreve arquivos existentes")
+    init.add_argument("--no-shims", action="store_true", help="nao grava shims (CLAUDE.md)")
+    init.add_argument("--no-hooks", action="store_true", help="nao instala o hook pre-commit")
+    init.add_argument("--no-workflow", action="store_true", help="nao grava o workflow do GitHub")
+    sub.add_parser("hook", help="checagem de pre-commit (anti-supressao + segredo staged)")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -53,6 +78,10 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_doctor()
     if args.command == "scan":
         return _cmd_scan(args.config, args.target, args.fmt)
+    if args.command == "init":
+        return _cmd_init(args)
+    if args.command == "hook":
+        return _cmd_hook()
     if args.command == "version":
         print(__version__)
         return 0
