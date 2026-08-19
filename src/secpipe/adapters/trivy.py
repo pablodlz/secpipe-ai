@@ -19,5 +19,6 @@ class TrivyScanner:
     def scan(self, target: str) -> ScanResult:
         return run_sarif_scanner(
             self.name, BINARY,
-            ["fs", "--format", "sarif", "--quiet", target],
+            ["fs", "--format", "sarif", "--quiet",
+             "--skip-dirs", ".venv,venv,node_modules,tools,dist,build,.tox,vendor", target],
         )

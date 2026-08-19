@@ -55,17 +55,31 @@ class ScanResult:
     detail: str = ""
 
 
+# Dirs de ruído (dependências/artefatos, não código do projeto). Regra DO MOTOR (FEAT-003) —
+# não editável pelo projeto: achados aqui dentro são de terceiros, não do que o time desenvolve.
+_EXCLUDED_SEGMENTS = frozenset({
+    ".venv", "venv", "node_modules", ".git", "tools", "dist", "build", ".tox", "vendor",
+    "__pycache__", ".mypy_cache", ".ruff_cache", ".pytest_cache", ".cache", "site-packages",
+})
+
+
+def _in_excluded_path(path: str) -> bool:
+    return any(seg in _EXCLUDED_SEGMENTS for seg in path.replace("\\", "/").split("/"))
+
+
 @dataclass(frozen=True, slots=True)
 class Report:
     results: tuple[ScanResult, ...]
 
     @property
     def findings(self) -> list[Finding]:
-        """Achados agregados e DEDUPLICADOS por fingerprint (preserva a 1ª ocorrência)."""
+        """Achados agregados, com dirs vendored/venv EXCLUÍDOS (FEAT-003) e DEDUP por fingerprint."""
         seen: set[str] = set()
         out: list[Finding] = []
         for result in self.results:
             for finding in result.findings:
+                if finding.file and _in_excluded_path(finding.file):
+                    continue
                 fp = finding.fingerprint
                 if fp not in seen:
                     seen.add(fp)

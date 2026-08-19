@@ -1,6 +1,11 @@
 # FEAT-006 — Abstração de IA + fallback multi-provedor
 
-> **Fase 3** · Base: `MultiProvider` do Omni (§6). Reusável quase literal. Provider-agnostic (ADR-0007).
+> **Fase 3** · Base: `MultiProvider` do Omni (§6). Provider-agnostic (ADR-0007).
+> **ESCOPO REORIENTADO (operador = IA):** no caminho **principal**, o agente de IA que opera o projeto
+> (Claude Code/Cursor/Copilot) já corrige com o **próprio modelo** — o secpipe **não** precisa de chave.
+> Esta abstração serve **só ao modo OPCIONAL headless** (um bot de PR sem agente interativo), onde o
+> secpipe chamaria um LLM e aí sim uma chave (via env) seria necessária. Já implementado o substrato
+> (`AIProviderPort`, `MultiProvider`, `NullProvider`).
 
 ## Objetivo
 Uma porta única de IA com **fallback** entre provedores, seleção por custo/tarefa/disponibilidade, e

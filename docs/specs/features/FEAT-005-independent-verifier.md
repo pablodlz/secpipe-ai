@@ -1,7 +1,10 @@
-# FEAT-005 — Verificador independente (fail-CLOSED, maioria-de-N)
+# FEAT-005 — Verificador independente (DETERMINÍSTICO, fail-CLOSED)
 
-> **Fase 3** · Base: `LlmJudge` do Omni (§5) **com a inversão de defesa**. É o "quem corrige não aprova":
-> um segundo contexto valida o fix antes de aceitar.
+> **Fase 3** · **REORIENTADO (operador = IA):** o operador já é um agente de IA rodando; o secpipe **não**
+> embute LLM. Logo o verificador independente é **DETERMINÍSTICO** — o juiz é o **scanner + teste de
+> regressão + ausência de supressão + gate**, tudo **objetivo** (a máquina aprova, não a palavra do agente).
+> Isso é mais robusto que um 2º LLM **e** dispensa chave. Um verificador por 2º-LLM fica **opcional** (modo
+> headless). Base conceitual: `LlmJudge` do Omni (§5), com a inversão de defesa (fail-closed).
 
 ## Objetivo
 Um verificador **independente** de quem propôs o fix, que **veta** correções ruins (não cria confiança),

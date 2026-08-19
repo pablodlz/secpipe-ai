@@ -37,6 +37,7 @@ select = ["E", "F", "B", "S", "I", "UP"]
 # init/hook invocam git e gitleaks (dev tools bem-conhecidos) por nome, em contexto controlado.
 "src/secpipe/application/use_cases/init.py" = ["S603", "S607"]
 "src/secpipe/application/use_cases/precommit.py" = ["S603", "S607"]
+"src/secpipe/application/use_cases/verify.py" = ["S603", "S607"]
 
 [tool.mypy]
 python_version = "3.11"

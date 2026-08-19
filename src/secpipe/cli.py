@@ -10,6 +10,7 @@ from secpipe import __version__
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.precommit import run as run_precommit
+from secpipe.application.use_cases.verify import verify as run_verify
 from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build
 from secpipe.foundation.config import Config
 
@@ -52,6 +53,15 @@ def _cmd_hook() -> int:
     return run_precommit()
 
 
+def _cmd_verify(config_path: str | None, target: str, base_ref: str) -> int:
+    cfg = Config.load(config_path)
+    verdict = run_verify(build(cfg), target, base_ref=base_ref, test_command=cfg.test_command)
+    print(f"secpipe verify: {'ACCEPT' if verdict.accepted else 'REJECT'}")
+    for reason in verdict.reasons:
+        print("  -", reason)
+    return 0 if verdict.accepted else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="secpipe", description="Motor de seguranca operado por IA.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -68,6 +78,10 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--no-hooks", action="store_true", help="nao instala o hook pre-commit")
     init.add_argument("--no-workflow", action="store_true", help="nao grava o workflow do GitHub")
     sub.add_parser("hook", help="checagem de pre-commit (anti-supressao + segredo staged)")
+    ver = sub.add_parser("verify", help="juiz deterministico do fix (gate + anti-supressao + testes)")
+    ver.add_argument("target", nargs="?", default=".", help="diretorio (default: .)")
+    ver.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    ver.add_argument("--base", dest="base_ref", default="HEAD", help="ref git base do diff (default: HEAD)")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -82,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_init(args)
     if args.command == "hook":
         return _cmd_hook()
+    if args.command == "verify":
+        return _cmd_verify(args.config, args.target, args.base_ref)
     if args.command == "version":
         print(__version__)
         return 0

@@ -16,6 +16,7 @@ class Config:
     scanners: tuple[str, ...] = _DEFAULT_SCANNERS
     block_severity: str = _DEFAULT_BLOCK_SEVERITY
     languages: tuple[str, ...] = field(default_factory=tuple)  # vazio = auto-detect (Fase 1)
+    test_command: tuple[str, ...] = field(default_factory=tuple)  # ex.: ["pytest","-q"] — usado no `verify`
 
     @staticmethod
     def default() -> Config:
@@ -28,10 +29,12 @@ class Config:
         scanners = d.get("scanners")
         languages = d.get("languages")
         block = d.get("block_severity")
+        test_cmd = d.get("test_command")
         return Config(
             scanners=tuple(scanners) if isinstance(scanners, list) else _DEFAULT_SCANNERS,
             block_severity=str(block) if isinstance(block, str) else _DEFAULT_BLOCK_SEVERITY,
             languages=tuple(languages) if isinstance(languages, list) else (),
+            test_command=tuple(str(x) for x in test_cmd) if isinstance(test_cmd, list) else (),
         )
 
     @staticmethod

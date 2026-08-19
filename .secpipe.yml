@@ -2,3 +2,4 @@
 scanners: [gitleaks, semgrep, bandit, trivy]
 block_severity: HIGH
 languages: [python]
+test_command: [pytest, -q]

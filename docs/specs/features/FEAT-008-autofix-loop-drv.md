@@ -1,7 +1,9 @@
 # FEAT-008 — Loop de auto-fix DRV (escada limitada + abstention)
 
-> **Fase 3** · Base: `RehypothesisEngine` do Omni (§8) **com as inversões de defesa**. É a **orquestração**
-> que amarra FEAT-002/005/006/007: achar → corrigir → **verificar**, com escalonamento honesto.
+> **Fase 3** · **REORIENTADO (operador = IA):** o **agente que já opera o projeto** faz o REPARO (com o
+> próprio modelo, sem chave); o secpipe **dirige e VERIFICA** (determinístico, FEAT-005) e controla o loop
+> (escada, limite, abstention). O protocolo do agente vive no `AGENTS.md`. `secpipe verify` é o juiz.
+> Base: `RehypothesisEngine` do Omni (§8) com as inversões de defesa.
 
 ## Objetivo
 Para cada achado bloqueante, tentar corrigir subindo uma **escada** de estratégias (barato→caro), cada
