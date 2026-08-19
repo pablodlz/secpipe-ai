@@ -1,6 +1,5 @@
-# Dogfooding (ADR-0009): o secpipe roda a esteira EM SI MESMO + supply-chain do próprio repo.
-# NOTA: as actions abaixo usam tags por legibilidade; em produção, PINAR POR SHA
-#       (StepSecurity Secure-Repo automatiza isso — ver docs/specs/03-security.md).
+# Dogfooding (ADR-0009): o secpipe roda a esteira EM SI MESMO.
+# Actions PINADAS POR SHA (supply-chain — docs/specs/03-security.md); o comentário mostra a versão legível.
 name: ci-security
 on:
   push: { branches: [main] }
@@ -11,10 +10,10 @@ jobs:
   quality-and-security:
     runs-on: ubuntu-latest
     steps:
-      - uses: step-security/harden-runner@v2   # egress-monitoring do runner (free)
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
         with: { egress-policy: audit }
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with: { python-version: "3.11" }
       - run: python -m pip install --upgrade pip setuptools wheel   # corrige vuln de setuptools do runner
       - run: python -m pip install -e ".[dev]"
@@ -33,8 +32,6 @@ jobs:
   secret-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with: { fetch-depth: 0 }
-      - uses: gitleaks/gitleaks-action@v2
-  # NOTA: OpenSSF Scorecard (postura de supply-chain) volta como workflow dedicado com a action
-  # PINADA POR SHA (a tag @v2 não resolve). Ver docs/specs/03-security.md.
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e  # v3.0.0
