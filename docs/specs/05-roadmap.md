@@ -12,6 +12,13 @@
 | **3 — Auto-fix (DRV)** | fix determinístico (Codemodder) → fix IA (provider-agnostic) → **verificador independente** + abstention | fix só com teste+verificação |
 | **4 — Integração** | aplicar aos projetos (bots/Clavis) e, opcional, Omni; exportar DefectDojo | por-projeto |
 
+## Specs detalhadas das Fases 2-3 (prontas)
+
+As estratégias das próximas fases já estão especificadas em detalhe em
+[`features/`](features/) (FEAT-001..010) — contrato, firewall, anti-FP, severidade, verificador,
+abstração de IA, grounding, loop de auto-fix, memória de fixes e adoção. Ver também
+[`../standards/ENGINEERING-DISCIPLINE.md`](../standards/ENGINEERING-DISCIPLINE.md).
+
 ## Próximos passos imediatos (Fase 1)
 
 1. Empacotar o **container** do motor (imagem com CLI + tools free).
