@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
+      - run: python -m pip install --upgrade pip setuptools wheel   # corrige vuln de setuptools do runner
       - run: python -m pip install -e ".[dev]"
       - name: Lint (ruff, inclui S/bandit)
         run: ruff check src tests
@@ -35,12 +36,5 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: gitleaks/gitleaks-action@v2
-  posture:
-    runs-on: ubuntu-latest
-    continue-on-error: true                     # postura é informativa; não bloqueia o CI se falhar
-    permissions: { security-events: write, id-token: write }
-    steps:
-      - uses: actions/checkout@v4
-        with: { persist-credentials: false }
-      - uses: ossf/scorecard-action@v2          # 18+ checks de postura (free em repo público)
-        with: { results_file: results.sarif, results_format: sarif, publish_results: false }
+  # NOTA: OpenSSF Scorecard (postura de supply-chain) volta como workflow dedicado com a action
+  # PINADA POR SHA (a tag @v2 não resolve). Ver docs/specs/03-security.md.
