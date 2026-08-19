@@ -30,7 +30,9 @@ abstração de IA, grounding, loop de auto-fix, memória de fixes e adoção. Ve
 - [x] **Setup reproduzível na raiz**: `install.py` (+ `setup.sh`/`setup.ps1`) cria venv, instala deps e baixa scanners.
 - [x] **Publicar imagem**: workflow `publish-image.yml` (dispara em tag `vX.Y.Z`; o CI faz o build, sem Docker local).
 - [x] **ASH**: decidido no [ADR-0010](../adr/0010-orchestration-own-not-ash.md) — orquestração própria; ASH como adapter opcional.
-- [~] **Branch protection**: `scripts/setup_github_hardening.sh` pronto (acionar ao migrar p/ PR — não ativado agora p/ não bloquear push direto). Scorecard/Harden-Runner já rodam no CI.
+- [x] **Imagem pública** em `ghcr.io/pablodlz/secpipe-ai:0.1.0` (+ `:latest`); CI verde.
+- [x] **Supply-chain**: actions pinadas por SHA + `scorecard.yml` dedicado + gitleaks/Harden-Runner no CI.
+- [x] **Branch protection** ativa em `main` (fluxo por PR: checks obrigatórios, sem force-push/deleção). Loosen via `scripts/setup_github_hardening.sh`/painel.
 
 > **Nota Windows:** `semgrep` não roda nativamente no Windows (limitação do próprio tool) — no Windows
 > ele fica `skipped`; roda no **container Linux** e no **CI**. gitleaks/trivy/bandit/pip-audit rodam nos dois.
