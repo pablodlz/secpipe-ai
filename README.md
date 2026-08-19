@@ -6,9 +6,9 @@
 > **Agnóstico de linguagem** (qualquer stack — roda como container, sem exigir Python no consumidor) e
 > **agnóstico de IA** (qualquer agente: Claude, Cursor, Copilot, Aider…; qualquer provedor: Claude/OpenAI/Gemini/local).
 > Meta: ser **a melhor opção de segurança de custo zero do mercado**, compondo o melhor do free existente.
-> Status: **FASE 2 — adoção** (`secpipe init` instala config + `AGENTS.md` + hook agent-independent +
-> workflow; sobre a base da Fase 1: 5 scanners reais + normalização SARIF + gate). **Sem** o loop de
-> auto-fix da IA (DRV) ainda — Fase 3, especificado em `docs/specs/features/`.
+> Status: **NÚCLEO COMPLETO (Fases 0–3 + MCP)** — 5 scanners reais + gate fail-closed + `secpipe init`/`hook`
+> (adoção agent-independent) + **auto-fix DRV keyless** (`fix`/`verify`, o agente corrige, a máquina aprova)
+> + **servidor MCP** + imagem pública `ghcr.io/pablodlz/secpipe-ai:latest`. Próximo: **Fase 4** — integrar aos projetos.
 
 Este projeto é o **alicerce comum de segurança** dos demais projetos. A ideia: deixar o motor pronto,
 depois **plugá-lo em cada projeto**. Por isso, todos os outros projetos dependem deste.
