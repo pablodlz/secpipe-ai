@@ -16,6 +16,7 @@ _IGNORE = {
     "src/secpipe/application/use_cases/_init_resources.py",
     "tests/unit/test_precommit.py",   # fixture contém '# nosec' de propósito (testa o detector)
     "tests/unit/test_verify.py",      # idem: fixture de fix que SILENCIA (testa o REJECT)
+    "README.md",                      # documenta os tokens como EXEMPLO do que é bloqueado
 }
 
 
