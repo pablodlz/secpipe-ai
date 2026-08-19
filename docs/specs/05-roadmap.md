@@ -1,6 +1,9 @@
 # 05 — Roadmap & Open Questions
 
 > Operador = IA. Meta = melhor opção free do mercado, compondo best-of-breed. Nada aqui é implementado na Fase 0.
+>
+> **Estado (2026-08-19):** núcleo completo — Fases 0–3 + servidor MCP. `main` **protegida** (`enforce_admins`):
+> daqui em diante, mudanças entram por **PR** com checks obrigatórios. Próximo: **Fase 4** (integrar aos projetos).
 
 ## Fases
 
