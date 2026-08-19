@@ -8,9 +8,9 @@
 | --- | --- | --- |
 | **0 — Foundation** ✅ | estrutura, specs, ADRs, contrato, política, CLI, prior-art | concluída |
 | **1 — Motor de scan** ✅ | 5 scanners (gitleaks/Semgrep/Trivy/Bandit/pip-audit) + SARIF + dedup + reporter | concluída (dogfood real, CI verde, imagem pública) |
-| **2 — Gate + adoção** *(atual)* | `secpipe init` (detecção de linguagem → .secpipe.yml + AGENTS.md + hook + workflow) + `secpipe hook` | ✅ init/hook + imposição agent-independent; supply-chain já ativo |
-| **3 — Auto-fix (DRV)** | fix determinístico (Codemodder) → fix IA (provider-agnostic) → **verificador independente** + abstention | fix só com teste+verificação |
-| **4 — Integração** | aplicar aos projetos (bots/Clavis) e, opcional, Omni; exportar DefectDojo | por-projeto |
+| **2 — Gate + adoção** ✅ | `secpipe init` (detecção de linguagem → .secpipe.yml + AGENTS.md + hook + workflow) + `secpipe hook` | concluída (imposição agent-independent; supply-chain ativo) |
+| **3 — Auto-fix (DRV)** ✅ | **KEYLESS** (operador = IA): `secpipe fix` (Codemodder) → agente corrige → `secpipe verify` (juiz determinístico) + abstention + memória | concluída; ciclo DRV real demonstrado. Auto-fix por IA embutido = modo headless opcional (futuro) |
+| **4 — Integração** *(atual)* | aplicar aos projetos (bots/Clavis) e, opcional, Omni; exportar DefectDojo | por-projeto |
 
 ## Specs detalhadas das Fases 2-3 (prontas)
 
