@@ -43,3 +43,16 @@ class VerifierPort(Protocol):
     def verify(self, finding: Finding, patch: str) -> bool:
         """Valida INDEPENDENTEMENTE o fix (rerun + testes). Quem corrige não aprova (ADR-0008)."""
         ...
+
+
+@runtime_checkable
+class AIProviderPort(Protocol):
+    """Provedor de IA (FEAT-006). Provider-agnostic: Claude/OpenAI/Gemini/local por adapter."""
+    name: str
+    def available(self) -> bool:
+        """True se o provedor está utilizável (ex.: chave configurada)."""
+        ...
+
+    def complete(self, prompt: str) -> str:
+        """Completa o prompt. Pode falhar (rede/quota) — o MultiProvider trata o fallback."""
+        ...
