@@ -42,8 +42,10 @@ O motor é empacotado como **imagem container** (roda em qualquer CI e local) e 
 
 ## Como um projeto vai consumir (fase futura — exemplos já documentados)
 
-- **Referenciado:** ~5 linhas de workflow chamando `secpipe.reusable.yml@v1` + um `.secpipe.yml`.
-- **Template:** *use-as-template* copia só o wrapper + config; o motor continua vindo da imagem versionada.
+**Padrão = GitHub Actions.** Sem GitHub, o mesmo motor roda **local/container** (fallback).
+
+- **Referenciado (padrão, GitHub):** ~5 linhas de workflow chamando `secpipe.reusable.yml@v1` + um `.secpipe.yml`.
+- **Template / local:** *use-as-template* ou `docker run` copiam/rodam o motor versionado fora do GitHub.
 
 Exemplos em [`examples/consumer/`](examples/consumer/).
 
@@ -60,8 +62,10 @@ secpipe scan        # roda o pipeline (Fase 0: adapters ainda são esqueleto —
 1. [`docs/specs/00-overview.md`](docs/specs/00-overview.md)
 2. [`docs/specs/02-architecture.md`](docs/specs/02-architecture.md)
 3. [`docs/specs/03-security.md`](docs/specs/03-security.md) — threat model do próprio pipeline.
-4. [`docs/specs/04-consumption-models.md`](docs/specs/04-consumption-models.md) — referenciado vs template.
+4. [`docs/specs/04-consumption-models.md`](docs/specs/04-consumption-models.md) — GitHub (padrão) vs local/template.
 5. [`docs/specs/05-roadmap.md`](docs/specs/05-roadmap.md) — fases e pontos em aberto.
+6. [`docs/specs/06-prior-art-and-references.md`](docs/specs/06-prior-art-and-references.md) — mercado + papers.
+7. [`docs/specs/07-strategies-from-omni-pentest.md`](docs/specs/07-strategies-from-omni-pentest.md) — estratégias reaproveitadas (crítico).
 
 ## O que NÃO existe nesta fase
 

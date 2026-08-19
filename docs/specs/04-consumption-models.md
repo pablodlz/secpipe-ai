@@ -2,6 +2,9 @@
 
 > Como um projeto **aplica** o `secpipe` para que a **IA dele** desenvolva com segurança. Um só motor,
 > dois modos — a escolha muda só o **wrapper**, nunca a lógica (evita drift). Ver ADR-0002.
+>
+> **Padrão = GitHub Actions.** A adoção default é via GitHub (reusable workflow). O motor é container/CLI
+> por baixo, então **sem GitHub** o mesmo motor roda **local/container** em qualquer CI — o fallback.
 
 ## Princípio: referenciar, não copiar a lógica
 

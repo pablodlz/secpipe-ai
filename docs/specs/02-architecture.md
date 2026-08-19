@@ -80,9 +80,13 @@ estável de que a IA depende — versionado.
 
 ## Empacotamento & distribuição (motor único, dois modos)
 
-- **Container** (imagem com tools + CLI) = motor portável (qualquer CI + local).
-- **Reusable workflow** (`workflow_call`) = adoção referenciada no GitHub.
-- **use-as-template** = adoção "template" (copia só wrapper + `.secpipe.yml`; puxa a mesma imagem).
+**GitHub Actions é o SURFACE PADRÃO** (a maioria dos projetos vive no GitHub). O motor continua sendo
+container/CLI — é justamente isso que **permite o fallback** para quem não usa GitHub.
+
+- **Padrão — GitHub Actions:** o **reusable workflow** (`workflow_call`) é o caminho default de adoção.
+- **Fallback — local/container:** sem GitHub, o mesmo motor roda por `docker run`/CLI em qualquer CI ou máquina.
+- **Container** (imagem com tools + CLI) = o motor portável por baixo dos dois.
+- **use-as-template** = variante "template" (copia só wrapper + `.secpipe.yml`; puxa a mesma imagem).
 Detalhe em `04-consumption-models.md`.
 
 ## Pontos de extensão
