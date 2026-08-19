@@ -89,3 +89,8 @@ class Report:
     @property
     def has_errors(self) -> bool:
         return any(r.status is ScanStatus.ERROR for r in self.results)
+
+    @property
+    def ran(self) -> int:
+        """Quantos scanners REALMENTE rodaram (OK ou ERROR). 0 = nada escaneado (gate verde é falso)."""
+        return sum(1 for r in self.results if r.status in (ScanStatus.OK, ScanStatus.ERROR))
