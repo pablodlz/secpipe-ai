@@ -29,12 +29,21 @@ def _cmd_doctor() -> int:
     return 0
 
 
+NO_SCANNER_WARN = (
+    "AVISO: 0 scanners rodaram (nenhum disponivel). O gate passou por AUSENCIA de scanners, "
+    "nao por seguranca. Instale com `python install.py` ou use o container "
+    "`ghcr.io/pablodlz/secpipe-ai`; veja `secpipe doctor`."
+)
+
+
 def _cmd_scan(config_path: str | None, target: str, fmt: str) -> int:
     cfg = Config.load(config_path)
     orchestrator = build(cfg)
     report, decision = orchestrator.run(target)
     reporter = SarifReporter() if fmt == "sarif" else JsonReporter()
     print(reporter.render(report))
+    if report.ran == 0:
+        print(f"\n{NO_SCANNER_WARN}", file=sys.stderr)
     verdict = "PASS" if decision.passed else "FAIL"
     print(f"\nGATE: {verdict} - {decision.reason}", file=sys.stderr)
     return 0 if decision.passed else 1
@@ -49,6 +58,8 @@ def _cmd_init(args: argparse.Namespace) -> int:
     for action in result.actions:
         print("  -", action)
     print("\nProximo: `secpipe doctor` e `secpipe scan .`. A IA deve carregar o AGENTS.md antes de codar.")
+    print("Scanners locais: rode `python install.py` (ou use o container). O workflow gerado ja usa a "
+          "imagem com todos os scanners; para o `@v1` funcionar, o repo do secpipe mantem a tag major.")
     return 0
 
 

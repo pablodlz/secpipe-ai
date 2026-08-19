@@ -24,6 +24,7 @@ class JsonReporter:
     def render(self, report: Report) -> str:
         payload = {
             "schema_version": "0",
+            "scanners_ran": report.ran,   # 0 => nada escaneado; gate verde NAO significa seguro
             "results": [
                 {"tool": r.tool, "status": r.status.value, "detail": r.detail}
                 for r in report.results

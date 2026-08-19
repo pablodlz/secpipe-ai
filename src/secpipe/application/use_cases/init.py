@@ -44,7 +44,36 @@ def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+# Bloco de hook do secpipe para projetos que já usam o pre-commit framework (integração, não clobber).
+_PRECOMMIT_HOOK_BLOCK = """  - repo: local
+    hooks:
+      - id: secpipe
+        name: secpipe (anti-supressao + segredo staged)
+        entry: secpipe hook
+        language: system
+        pass_filenames: false
+"""
+
+
+def _integrate_precommit(cfg: Path, actions: list[str]) -> None:
+    """Anexa o hook secpipe ao .pre-commit-config.yaml existente (idempotente). NÃO mexe em core.hooksPath."""
+    content = cfg.read_text(encoding="utf-8")
+    if "id: secpipe" in content or "secpipe hook" in content:
+        actions.append("mantido: hook secpipe ja presente no .pre-commit-config.yaml")
+        return
+    sep = "" if content.endswith("\n") else "\n"
+    cfg.write_text(content + sep + _PRECOMMIT_HOOK_BLOCK, encoding="utf-8")
+    actions.append("hook secpipe adicionado ao .pre-commit-config.yaml existente (core.hooksPath intocado)")
+
+
 def _install_hooks(root: Path, *, force: bool, actions: list[str]) -> None:
+    # Projeto que JÁ usa o pre-commit framework: integra o hook lá (não sequestra core.hooksPath,
+    # o que silenciosamente desativaria os hooks existentes do pre-commit).
+    precommit = root / ".pre-commit-config.yaml"
+    if precommit.is_file():
+        _integrate_precommit(precommit, actions)
+        return
+    # Caso contrário: hook nativo do git via .githooks + core.hooksPath.
     hook = root / ".githooks" / "pre-commit"
     _write(hook, R.PRECOMMIT_SH, force=force, label=".githooks/pre-commit", actions=actions)
     try:
