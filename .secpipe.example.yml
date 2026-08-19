@@ -1,0 +1,14 @@
+# .secpipe.yml — OPCIONAL. Sem este arquivo, o secpipe roda em modo zero-config com defaults
+# seguros e FORTES (ADR-0009). Copie para `.secpipe.yml` só se quiser tunar.
+
+# Scanners a rodar (default: gitleaks + semgrep + trivy — multi-linguagem, free).
+scanners:
+  - gitleaks     # segredos
+  - semgrep      # SAST
+  - trivy        # SCA / IaC / imagem / secret
+
+# Severidade que BLOQUEIA o gate (INFO|LOW|MEDIUM|HIGH|CRITICAL). Default: HIGH.
+block_severity: HIGH
+
+# Linguagens do projeto (vazio = auto-detect na Fase 1). Ex.: [python, javascript, go]
+languages: []

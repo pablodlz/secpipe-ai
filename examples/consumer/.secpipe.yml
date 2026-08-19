@@ -1,0 +1,4 @@
+# Config de exemplo de um projeto consumidor (opcional — zero-config também funciona).
+scanners: [gitleaks, semgrep, trivy]
+block_severity: HIGH
+languages: [python]

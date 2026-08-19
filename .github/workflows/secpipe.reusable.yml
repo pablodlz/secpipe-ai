@@ -1,0 +1,27 @@
+# Modo A (referenciado): outro projeto consome ASSIM, pinando por tag/SHA:
+#   jobs: { secpipe: { uses: pablodlz/secpipe-ai/.github/workflows/secpipe.reusable.yml@v1 } }
+# Fase 0: esqueleto. Fase 1 roda a imagem publicada e sobe SARIF ao code scanning.
+name: secpipe-reusable
+on:
+  workflow_call:
+    inputs:
+      target:   { type: string, default: "." }
+      config:   { type: string, default: ".secpipe.yml" }
+    # secrets: (fase 3) chaves de IA para o auto-fix, passadas pelo consumidor
+permissions:
+  contents: read
+jobs:
+  secpipe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@v2
+        with: { egress-policy: audit }
+      - uses: actions/checkout@v4
+      # Fase 1: usar a imagem versionada (motor único), ex.:
+      #   - run: docker run --rm -v "$PWD:/work" ghcr.io/pablodlz/secpipe-ai:v1 scan /work
+      # Fase 0 (fallback pip):
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install secpipe || pip install "git+https://github.com/pablodlz/secpipe-ai@v0"
+      - name: secpipe scan (gate)
+        run: secpipe scan "${{ inputs.target }}" --config "${{ inputs.config }}"

@@ -1,0 +1,12 @@
+# MODO B — TEMPLATE (você é dono do bump). Roda a MESMA imagem versionada do motor.
+# Funciona em qualquer CI (aqui, GitHub). Ver docs/specs/04-consumption-models.md.
+name: security
+on: { push: { branches: [main] }, pull_request: { branches: [main] } }
+permissions: { contents: read }
+jobs:
+  secpipe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Pina a imagem por tag/digest (você controla quando atualizar):
+      - run: docker run --rm -v "$PWD:/work" ghcr.io/pablodlz/secpipe-ai:v1 scan /work

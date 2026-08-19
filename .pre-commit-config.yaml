@@ -1,0 +1,24 @@
+# Shift-left local (dogfooding). Ative: pre-commit install
+# Espelha o gate de CI. A regra anti-supressão é o guardrail do ADR-0008.
+minimum_pre_commit_version: "3.5.0"
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks: [{id: ruff}, {id: ruff-format}]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks: [{id: mypy, additional_dependencies: ["types-PyYAML"]}]
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks: [{id: gitleaks}]
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks: [{id: bandit, args: ["-q", "-r", "src"]}]
+  # Guardrail anti-supressão (ADR-0008): bloqueia introdução de silenciadores no diff.
+  - repo: local
+    hooks:
+      - id: no-suppression
+        name: "proibir supressao de achados (# nosec / # noqa / nosemgrep)"
+        entry: bash -c '! git diff --cached -U0 | grep -E "^\+.*(# *nosec|# *noqa|nosemgrep)" || (echo "Supressao de achado detectada no diff — resolva a causa, nao silencie (ADR-0008)."; exit 1)'
+        language: system
+        pass_filenames: false

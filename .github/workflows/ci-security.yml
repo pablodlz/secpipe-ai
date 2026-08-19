@@ -1,0 +1,44 @@
+# Dogfooding (ADR-0009): o secpipe roda a esteira EM SI MESMO + supply-chain do próprio repo.
+# NOTA: as actions abaixo usam tags por legibilidade; em produção, PINAR POR SHA
+#       (StepSecurity Secure-Repo automatiza isso — ver docs/specs/03-security.md).
+name: ci-security
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+permissions:
+  contents: read            # least-privilege
+jobs:
+  quality-and-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@v2   # egress-monitoring do runner (free)
+        with: { egress-policy: audit }
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: python -m pip install -e ".[dev]"
+      - name: Lint (ruff, inclui S/bandit)
+        run: ruff check src tests
+      - name: Type check (mypy strict)
+        run: mypy src
+      - name: SAST (bandit)
+        run: bandit -q -r src
+      - name: SCA (pip-audit)
+        run: pip-audit
+      - name: Tests (unit + architecture)
+        run: pytest -q
+      - name: Dogfood — secpipe em si mesmo
+        run: python -m secpipe.cli scan .
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+  posture:
+    runs-on: ubuntu-latest
+    permissions: { security-events: write, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ossf/scorecard-action@v2         # 18+ checks de postura (free em repo público)
+        with: { results_file: results.sarif, results_format: sarif }

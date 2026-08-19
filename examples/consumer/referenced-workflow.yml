@@ -1,0 +1,11 @@
+# MODO A — REFERENCIADO (recebe updates). Copie para .github/workflows/security.yml no SEU projeto.
+# Pina a versão do motor (@v1 ou um SHA). Ver docs/specs/04-consumption-models.md.
+name: security
+on: { push: { branches: [main] }, pull_request: { branches: [main] } }
+permissions: { contents: read }
+jobs:
+  secpipe:
+    uses: pablodlz/secpipe-ai/.github/workflows/secpipe.reusable.yml@v1   # <- pinar tag/SHA
+    with:
+      target: "."
+      config: ".secpipe.yml"
