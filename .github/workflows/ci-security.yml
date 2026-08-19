@@ -22,7 +22,7 @@ jobs:
       - name: Type check (mypy strict)
         run: mypy src
       - name: SAST (bandit)
-        run: bandit -q -r src
+        run: bandit -q -c pyproject.toml -r src   # usa os skips revisados do pyproject (B404/B603/B607)
       - name: SCA (pip-audit)
         run: pip-audit
       - name: Tests (unit + architecture)
@@ -37,8 +37,10 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
   posture:
     runs-on: ubuntu-latest
+    continue-on-error: true                     # postura é informativa; não bloqueia o CI se falhar
     permissions: { security-events: write, id-token: write }
     steps:
       - uses: actions/checkout@v4
-      - uses: ossf/scorecard-action@v2         # 18+ checks de postura (free em repo público)
-        with: { results_file: results.sarif, results_format: sarif }
+        with: { persist-credentials: false }
+      - uses: ossf/scorecard-action@v2          # 18+ checks de postura (free em repo público)
+        with: { results_file: results.sarif, results_format: sarif, publish_results: false }
