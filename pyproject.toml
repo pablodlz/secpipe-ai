@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "secpipe"
-version = "0.3.0"                 # Fase 3 — auto-fix DRV (fix/verify/abstention/memoria)
+version = "0.4.0"                 # servidor MCP (interface nativa do agente)
 description = "Motor de segurança operado por IA — a melhor esteira DevSecOps de custo zero"
 requires-python = ">=3.11"
 readme = "README.md"

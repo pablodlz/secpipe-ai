@@ -1,4 +1,4 @@
-"""CLI machine-first do secpipe: doctor · scan · fix · verify · init · hook · remember/recall · version.
+"""CLI machine-first do secpipe: doctor · scan · fix · verify · init · hook · mcp · remember/recall · version.
 
 Saída pensada para a IA consumir (JSON em `scan`). Exit code de `scan`/`verify` reflete o gate."""
 from __future__ import annotations
@@ -15,6 +15,7 @@ from secpipe.application.use_cases.verify import verify as run_verify
 from secpipe.domain.fix_memory import VerifiedFix
 from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build, build_fixer
 from secpipe.foundation.config import Config
+from secpipe.mcp_server import main as mcp_main
 
 
 def _cmd_doctor() -> int:
@@ -53,6 +54,10 @@ def _cmd_init(args: argparse.Namespace) -> int:
 
 def _cmd_hook() -> int:
     return run_precommit()
+
+
+def _cmd_mcp() -> int:
+    return mcp_main()
 
 
 def _cmd_fix(target: str, dry_run: bool) -> int:
@@ -111,6 +116,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--no-hooks", action="store_true", help="nao instala o hook pre-commit")
     init.add_argument("--no-workflow", action="store_true", help="nao grava o workflow do GitHub")
     sub.add_parser("hook", help="checagem de pre-commit (anti-supressao + segredo staged)")
+    sub.add_parser("mcp", help="servidor MCP (stdio) — expoe as tools do secpipe ao agente de IA")
     rem = sub.add_parser("remember", help="registra um fix VERIFICADO na memoria (padrao, nao codigo)")
     rem.add_argument("--cwe", required=True, help="ex.: CWE-89")
     rem.add_argument("--tool", default="", help="scanner de origem")
@@ -139,6 +145,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_init(args)
     if args.command == "hook":
         return _cmd_hook()
+    if args.command == "mcp":
+        return _cmd_mcp()
     if args.command == "remember":
         return _cmd_remember(args)
     if args.command == "recall":

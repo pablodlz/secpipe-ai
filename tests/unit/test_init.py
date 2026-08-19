@@ -21,6 +21,7 @@ def test_init_installs_everything(tmp_path: Path) -> None:
     assert (tmp_path / ".secpipe.yml").is_file()
     assert (tmp_path / "AGENTS.md").is_file()
     assert (tmp_path / "CLAUDE.md").is_file()
+    assert (tmp_path / ".mcp.json").is_file()
     assert (tmp_path / ".github" / "workflows" / "security.yml").is_file()
     assert (tmp_path / ".githooks" / "pre-commit").is_file()
     # python detectado -> bandit no .secpipe.yml

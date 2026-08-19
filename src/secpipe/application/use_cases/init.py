@@ -77,6 +77,7 @@ def init(
     _write(root / ".secpipe.yml", yml, force=force, label=".secpipe.yml", actions=res.actions)
 
     _write(root / "AGENTS.md", R.AGENTS_MD, force=force, label="AGENTS.md", actions=res.actions)
+    _write(root / ".mcp.json", R.MCP_JSON, force=force, label=".mcp.json (servidor MCP)", actions=res.actions)
     if shims:
         _write(root / "CLAUDE.md", R.SHIM, force=force, label="CLAUDE.md (shim)", actions=res.actions)
 

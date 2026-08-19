@@ -80,6 +80,14 @@ secpipe init      # detecta linguagem -> grava .secpipe.yml + AGENTS.md (+shim) 
 O hook (`secpipe hook`) bloqueia **supressão de achado** e **segredo** no `git commit` — imposição
 **agent-independent** (funciona com qualquer IA). O `AGENTS.md` é o contexto de segurança que a IA carrega antes de codar.
 
+## Servidor MCP (interface nativa do agente)
+
+`secpipe init` também grava um `.mcp.json` que registra o **servidor MCP** do secpipe. O agente de IA
+(Claude Code, Cursor, …) ganha as **tools** `secpipe_scan · secpipe_verify · secpipe_fix · secpipe_recall ·
+secpipe_remember · secpipe_doctor` e orquestra o loop DRV chamando-as (JSON estruturado, sem shell).
+O servidor é **stdio local, stdlib-only** (zero dependência); a **imposição continua nos hooks + CI** — o
+MCP é a camada de ergonomia, não substitui o gate. Rodar avulso: `secpipe mcp`.
+
 ## Por onde começar a ler
 
 1. [`docs/specs/00-overview.md`](docs/specs/00-overview.md)

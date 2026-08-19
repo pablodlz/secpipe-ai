@@ -39,6 +39,15 @@ echo "secpipe: nao encontrado no PATH — hook local pulado (o CI ainda aplica o
 exit 0
 """
 
+# Registro do servidor MCP (Claude Code lê .mcp.json na raiz do projeto). O agente ganha as tools
+# secpipe_scan/verify/fix/recall/remember/doctor. Lançado via console script `secpipe mcp`.
+MCP_JSON = """{
+  "mcpServers": {
+    "secpipe": { "command": "secpipe", "args": ["mcp"] }
+  }
+}
+"""
+
 # Shim que aponta o agente para o AGENTS.md (para ferramentas que leem CLAUDE.md, etc.).
 SHIM = "Este projeto adotou o secpipe. Carregue **AGENTS.md** antes de desenvolver (contexto de segurança).\n"
 
