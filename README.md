@@ -101,6 +101,82 @@ docker run --rm -v "$PWD:/work" ghcr.io/pablodlz/secpipe-ai:latest scan /work
 
 ---
 
+## 📋 Step-by-step — add secpipe to *your* project
+
+> **Who does what.** *You* wire secpipe in **once** (a handful of generated files, one commit). From then on
+> **your AI agent operates it** — it reads `AGENTS.md`, runs the loop, and fixes findings. **No API key, ever:**
+> the operator is the agent you already use (Claude Code, Cursor, Copilot…), not a paid service.
+
+**Prerequisites:** a Git repository (GitHub recommended) and either **Docker** *or* **Python 3.11+**.
+
+### 1 · Install the engine
+
+Pick one path:
+
+```bash
+# A) Zero install — the published image has all 5 scanners baked in (best for CI)
+docker pull ghcr.io/pablodlz/secpipe-ai:latest
+
+# B) Local CLI + scanners — to run the loop on your machine
+pip install git+https://github.com/pablodlz/secpipe-ai.git
+python install.py     # installs the free scanners  (or ./setup.sh | .\setup.ps1)
+secpipe doctor        # shows which scanners are on your PATH
+```
+
+### 2 · Adopt it — one command at your repo root
+
+```bash
+secpipe init
+```
+
+It detects your languages and writes these files (idempotent — it **never** clobbers what you already have):
+
+| File | What it's for | Commit it? |
+| --- | --- | --- |
+| `.secpipe.yml` | your scanner list + gate — **tune-only**, it can't weaken the defaults | ✅ |
+| `.github/workflows/security.yml` | the CI gate — calls the reusable engine at `@v1` | ✅ |
+| `AGENTS.md` | the contract your AI reads **before writing code** | ✅ |
+| `.mcp.json` | wires the MCP server so the agent calls secpipe natively | ✅ |
+| `CLAUDE.md` | shim pointing Claude Code at `AGENTS.md` | ✅ |
+| pre-commit hook | anti-suppression guardrail — **merged into** your existing `.pre-commit-config.yaml` (or a native git hook) | ✅ |
+
+### 3 · Commit & push — the gate goes live
+
+```bash
+git add .secpipe.yml .github/ AGENTS.md .mcp.json CLAUDE.md .pre-commit-config.yaml
+git commit -m "chore(security): adopt secpipe"
+git push
+```
+
+On every push/PR, `security.yml` runs `docker run …/secpipe-ai:latest scan` — all scanners, straight from the
+**public** image, so **your CI needs no login or secret**. Any **HIGH/CRITICAL** finding **fails the build**
+(fail-closed). There is nothing else to configure.
+
+### 4 · Let your AI operate the loop
+
+While you build, your agent runs **Detect → Repair → Verify** (locally, or over MCP):
+
+```bash
+secpipe scan .     # DETECT  — CWE-tagged JSON findings the AI consumes
+secpipe fix .      # REPAIR  — deterministic codemods; the agent fixes the rest
+secpipe verify .   # VERIFY  — deterministic judge: gate + no-suppression + your tests
+```
+
+The agent **cannot** silence a finding to go green (the guardrail below blocks it), and sensitive classes
+(auth / crypto / secrets) are **escalated to you**, never auto-fixed.
+
+### 5 · Pick your adoption model *(optional)*
+
+- **Referenced (default)** — `security.yml` pins `…/secpipe.reusable.yml@v1`; bump the tag to get engine
+  updates. Best for most projects.
+- **Template / vendored** — use-as-template, or just `docker run …` in any CI (GitLab, Jenkins…). Best when
+  you can't reference across repos.
+
+> **Net human effort:** one `secpipe init` + one commit. Everything after that is the agent and the gate.
+> Verify anytime with `secpipe doctor` and your repo's **Actions** tab.
+
+---
+
 ## 🧩 Architecture — one engine, three surfaces
 
 secpipe is a small, pure-domain core (Clean + Hexagonal) with swappable adapters and **three thin entrypoints**.
@@ -244,6 +320,9 @@ See [`SECURITY.md`](SECURITY.md) and the threat model in [`docs/specs/03-securit
 adoption · **keyless Detect→Repair→Verify** · deterministic verifier · abstention · fix memory · **MCP server** ·
 public container image · green CI.
 
+**Roadmap (next):** **DAST** (OWASP ZAP baseline — needs a deployed target) · deeper **IaC** scanning ·
+per-project **threat-model assist** (agent-drafted STRIDE) · headless **PR-bot** mode · **SBOM** + signed releases.
+
 ```mermaid
 flowchart LR
     P0["Phase 0<br/>Foundation ✅"] --> P1["Phase 1<br/>Scan engine ✅"] --> P2["Phase 2<br/>Adoption ✅"] --> P3["Phase 3<br/>Auto-fix DRV ✅"] --> P4["Phase 4<br/>Integrate everywhere ▶"]
@@ -268,6 +347,16 @@ and the MCP server works with any MCP-capable agent. Crucially, enforcement (hoo
 
 **Is it really free?** Yes — only free/OSS scanners, self-hosted, no metering. `semgrep`/`codemodder` don't run
 natively on Windows (they run in the Linux container/CI); everything else runs on Windows too.
+
+**Does it do threat modeling (STRIDE)?** Yes — first for *itself*: the pipeline is threat-modeled with STRIDE
+(assets, the "who-guards-the-guard" self-gaming threat, a risk register) in
+[`docs/specs/03-security.md`](docs/specs/03-security.md), and those controls are exactly what you get. Auto-drafting
+a STRIDE model for *your* app is on the roadmap — your agent can already produce one, guided by `AGENTS.md`.
+
+**What about DAST?** Roadmapped (OWASP ZAP baseline). secpipe is **static-first** — SAST, SCA, secrets,
+IaC/containers, supply-chain — because that fits the **keyless, CI-time** model with no running app to attack.
+DAST needs a deployed target and lands in a later phase (see
+[`docs/adr/0003`](docs/adr/0003-tool-selection-free.md) and [`docs/specs/05-roadmap.md`](docs/specs/05-roadmap.md)).
 
 **Can it just silence findings to pass?** No — that's the whole design. Suppression is blocked at commit time,
 the policy isn't editable by the consumer, and the verifier is deterministic.
