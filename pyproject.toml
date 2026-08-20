@@ -44,6 +44,8 @@ select = ["E", "F", "B", "S", "I", "UP"]
 # ai_providers.py: urlopen (S310) com URL validada (https; http só localhost). Chave via env, redigida em
 # erro; sem interpolação de dado do repo. Modo headless opt-in. Revisado a nível de projeto, não inline.
 "src/secpipe/adapters/ai_providers.py" = ["S310"]
+# defectdojo.py: urlopen (S310) com URL http/https validada. Token via env, redigido. Export opt-in.
+"src/secpipe/adapters/defectdojo.py" = ["S310"]
 
 [tool.mypy]
 python_version = "3.11"

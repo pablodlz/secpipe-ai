@@ -39,6 +39,7 @@ from secpipe.foundation.composition_root import (
     _SCANNER_REGISTRY,
     build,
     build_ai_provider,
+    build_exporter,
     build_fixer,
     build_policy,
 )
@@ -117,6 +118,25 @@ def _cmd_autofix(args: argparse.Namespace) -> int:
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0 if outcome.resolved else 1
+
+
+def _cmd_report(config_path: str | None, target: str, defectdojo: bool) -> int:
+    """Escaneia e (opt-in) EXPORTA para o DefectDojo (SARIF via API import-scan). Token só via env."""
+    cfg = Config.load(config_path)
+    report, decision = build(cfg).run(target)
+    print(JsonReporter().render(report))
+    if defectdojo:
+        exporter = build_exporter(cfg)
+        if not exporter.is_available():
+            print("secpipe report: --defectdojo pedido mas nao configurado (defina URL + DEFECTDOJO_TOKEN).",
+                  file=sys.stderr)
+            return 2
+        result = exporter.export(report)
+        print(f"\nDefectDojo: {'OK' if result.ok else 'FALHA'} - {result.detail}", file=sys.stderr)
+        if not result.ok:
+            return 2
+    print(f"\nGATE: {'PASS' if decision.passed else 'FAIL'} - {decision.reason}", file=sys.stderr)
+    return 0 if decision.passed else 1
 
 
 def _cmd_badge(config_path: str | None, target: str, output: str | None) -> int:
@@ -324,6 +344,10 @@ def build_parser() -> argparse.ArgumentParser:
     bdg.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
     bdg.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     bdg.add_argument("--output", default=None, help="grava o SVG num arquivo (ex.: badge.svg)")
+    rep = sub.add_parser("report", help="escaneia e (opt-in) exporta p/ o DefectDojo (SARIF); token via env")
+    rep.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
+    rep.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    rep.add_argument("--defectdojo", action="store_true", help="exporta os achados p/ o DefectDojo configurado")
     af = sub.add_parser("autofix", help="auto-fix headless por IA (UNICA excecao com chave, opt-in/default-off)")
     af.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
     af.add_argument("--headless", action="store_true", help="ativa o modo com chave (obrigatorio p/ rodar)")
@@ -356,6 +380,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output)
     if args.command == "badge":
         return _cmd_badge(args.config, args.target, args.output)
+    if args.command == "report":
+        return _cmd_report(args.config, args.target, args.defectdojo)
     if args.command == "autofix":
         return _cmd_autofix(args)
     if args.command == "init":
