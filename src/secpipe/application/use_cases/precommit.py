@@ -8,7 +8,10 @@ import shutil
 import subprocess
 
 # padrões de supressão barrados (dono único). Não confundir com uso legítimo em config revisada.
-SUPPRESSORS: tuple[str, ...] = ("# nosec", "#nosec", "# noqa", "#noqa", "nosemgrep")
+SUPPRESSORS: tuple[str, ...] = (
+    "# nosec", "#nosec", "# noqa", "#noqa", "nosemgrep",
+    "gitleaks:allow", "checkov:skip", "trivy:ignore", "semgrep-ignore",  # supressores inline por tool
+)
 
 
 def _staged_diff() -> str:
