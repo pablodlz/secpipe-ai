@@ -41,6 +41,9 @@ select = ["E", "F", "B", "S", "I", "UP"]
 # epss_kev.py: urlopen (S310) com URL FIXA validada p/ https (api.first.org / cisa.gov). Sem interpolação
 # de dado do repo; consulta só por CVE público. Decisão revisada a nível de projeto, não inline.
 "src/secpipe/adapters/epss_kev.py" = ["S310"]
+# ai_providers.py: urlopen (S310) com URL validada (https; http só localhost). Chave via env, redigida em
+# erro; sem interpolação de dado do repo. Modo headless opt-in. Revisado a nível de projeto, não inline.
+"src/secpipe/adapters/ai_providers.py" = ["S310"]
 
 [tool.mypy]
 python_version = "3.11"
