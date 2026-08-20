@@ -10,6 +10,7 @@ on:
     inputs:
       target:    { type: string, required: true }              # URL do app no ar (obrigatório p/ DAST)
       config:    { type: string, default: ".secpipe.yml" }
+      mode:      { type: string, default: "baseline" }          # baseline (passivo) | full (active scan)
       # Imagem do secpipe PINADA POR DIGEST (repinada a cada release; precisa conter `dast-import`).
       image:     { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:08be58113633adb5a13ece34e6fee2180755a2446120bc9446d210a26df9b34e" }
       zap_image: { type: string, default: "ghcr.io/zaproxy/zaproxy:stable" }
@@ -22,11 +23,16 @@ jobs:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
         with: { egress-policy: audit }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - name: ZAP baseline (DAST) contra o alvo
+      - name: ZAP (DAST) contra o alvo
+        env:
+          ZAP_SCRIPT: ${{ inputs.mode == 'full' && 'zap-full-scan.py' || 'zap-baseline.py' }}
         run: |
           mkdir -p zap-out
+          # `|| true`: o ZAP sai != 0 quando ACHA algo (queremos que o secpipe faca o gate, nao o ZAP).
           docker run --rm -v "${{ github.workspace }}/zap-out:/zap/wrk:rw" \
-            "${{ inputs.zap_image }}" zap-baseline.py -t "${{ inputs.target }}" -J report.json -I || true
+            "${{ inputs.zap_image }}" "$ZAP_SCRIPT" -t "${{ inputs.target }}" -J report.json -I || true
+          # FAIL-CLOSED: se o ZAP NAO gerou relatorio, foi falha de execucao -> reprova (nao passa em silencio).
+          test -s zap-out/report.json || { echo "::error::ZAP nao gerou relatorio (falha de execucao)"; exit 1; }
       - name: secpipe — normaliza o relatorio e aplica o gate
         run: |
           docker run --rm -v "${{ github.workspace }}:/work" -w /work \

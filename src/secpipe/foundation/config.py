@@ -22,6 +22,19 @@ def _read_dast_target(d: dict[str, object]) -> str:
     return flat if isinstance(flat, str) else ""
 
 
+def _read_dast_mode(d: dict[str, object]) -> str:
+    """`dast: {mode: baseline|full}`. Desconhecido -> baseline (o modo seguro)."""
+    dast = d.get("dast")
+    mode = dast.get("mode") if isinstance(dast, dict) else None
+    return "full" if mode == "full" else "baseline"
+
+
+def _read_dast_timeout(d: dict[str, object]) -> int:
+    dast = d.get("dast")
+    t = dast.get("timeout") if isinstance(dast, dict) else None
+    return t if isinstance(t, int) and not isinstance(t, bool) and t > 0 else 0
+
+
 def _read_enrich(d: dict[str, object], key: str) -> bool:
     """Lê `enrich: {epss: bool, kev: bool}`. Default False (evita rede no zero-config offline)."""
     enrich = d.get("enrich")
@@ -52,6 +65,8 @@ class Config:
     languages: tuple[str, ...] = field(default_factory=tuple)  # vazio = auto-detect (Fase 1)
     test_command: tuple[str, ...] = field(default_factory=tuple)  # ex.: ["pytest","-q"] — usado no `verify`
     dast_target: str = ""  # URL alvo do DAST (ZAP baseline). Vazio = DAST desligado (estático plug-and-play).
+    dast_mode: str = "baseline"  # baseline (passivo) | full (active scan — só contra alvos próprios!)
+    dast_timeout: int = 0  # timeout do ZAP em segundos; 0 = default por modo
     min_scanners: int = 1  # cobertura mínima: <1 => gate fail-closed (evita falso-verde de 0 scanners)
     require_scanners: tuple[str, ...] = field(default_factory=tuple)  # scanners que DEVEM ter rodado (opt-in)
     image_target: str = ""  # ref de imagem p/ o scanner 'image' (trivy image). Vazio = desligado.
@@ -84,6 +99,8 @@ class Config:
             languages=tuple(languages) if isinstance(languages, list) else (),
             test_command=tuple(str(x) for x in test_cmd) if isinstance(test_cmd, list) else (),
             dast_target=_read_dast_target(d),
+            dast_mode=_read_dast_mode(d),
+            dast_timeout=_read_dast_timeout(d),
             min_scanners=mins if isinstance(mins, int) and not isinstance(mins, bool) and mins >= 0 else 1,
             require_scanners=tuple(str(x) for x in require) if isinstance(require, list) else (),
             image_target=str(d.get("image_target") or "") if isinstance(d.get("image_target"), str) else "",

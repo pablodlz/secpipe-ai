@@ -49,7 +49,8 @@ def build_scanners(config: Config) -> tuple[ScannerPort, ...]:
     for name in config.scanners:
         # Scanners PARAMETRIZADOS recebem alvo/politica da config (os demais sao zero-arg).
         if name == "dast":
-            scanners.append(ZapDastScanner(config.dast_target))
+            scanners.append(ZapDastScanner(config.dast_target, mode=config.dast_mode,
+                                           timeout=config.dast_timeout))
         elif name == "image":
             scanners.append(TrivyImageScanner(config.image_target))
         elif name == "license":
