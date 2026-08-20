@@ -35,6 +35,7 @@ from secpipe.application.use_cases.diff import get_added_lines
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.policy_guard import LOCK_FILE, check_lock, write_lock
 from secpipe.application.use_cases.precommit import run as run_precommit
+from secpipe.application.use_cases.threat_export import render_threat_dragon
 from secpipe.application.use_cases.threat_model import build_threat_model
 from secpipe.application.use_cases.threat_model import render_json as tm_render_json
 from secpipe.application.use_cases.threat_model import render_markdown as tm_render_md
@@ -270,7 +271,12 @@ def _cmd_threat_model(config_path: str | None, target: str, fmt: str) -> int:
     cfg = Config.load(config_path)
     report, _ = build(cfg).run(target)
     tm = build_threat_model(target, tuple(report.findings))
-    print(tm_render_json(tm) if fmt == "json" else tm_render_md(tm))
+    if fmt == "json":
+        print(tm_render_json(tm))
+    elif fmt == "threat-dragon":
+        print(render_threat_dragon(tm))
+    else:
+        print(tm_render_md(tm))
     return 0
 
 
@@ -406,8 +412,8 @@ def build_parser() -> argparse.ArgumentParser:
     tm = sub.add_parser("threat-model", help="threat model STRIDE do app (scaffold keyless; o agente completa)")
     tm.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
     tm.add_argument("--config", default=None, help="caminho do .secpipe.yml")
-    tm.add_argument("--format", dest="fmt", choices=["md", "json"], default="md",
-                    help="md (agente/humano) ou json (maquina). default: md")
+    tm.add_argument("--format", dest="fmt", choices=["md", "json", "threat-dragon"], default="md",
+                    help="md (agente/humano) · json (maquina) · threat-dragon (OWASP Threat Dragon). default: md")
     di = sub.add_parser("dast-import", help="importa relatorio JSON do ZAP (DAST no CI), normaliza e aplica o gate")
     di.add_argument("report", help="caminho do report.json gerado pelo ZAP baseline")
     di.add_argument("--config", default=None, help="caminho do .secpipe.yml")

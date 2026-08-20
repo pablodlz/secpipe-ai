@@ -14,7 +14,14 @@ import re
 from dataclasses import dataclass, field
 
 from secpipe.domain import Finding
+from secpipe.domain.frameworks import detect as fw_detect
+from secpipe.domain.frameworks import markers_for
 from secpipe.domain.stride import Stride, categorize
+
+_MANIFESTS = frozenset({
+    "requirements.txt", "pyproject.toml", "setup.py", "package.json", "gemfile",
+    "composer.json", "pom.xml", "build.gradle", "manage.py",
+})
 
 _SKIP_DIRS = {
     ".git", ".venv", "venv", "node_modules", ".tox", "dist", "build", "__pycache__",
@@ -33,6 +40,7 @@ class SurfaceElement:
     line: int
     evidence: str
     stride: frozenset[Stride]
+    framework: str = ""       # framework de origem do marcador ("" = marcador genérico)
 
 
 # Marcadores de superfície: (kind, label, regex, categorias STRIDE implicadas). Determinístico e auditável.
@@ -153,8 +161,19 @@ def _iter_source_files(root: str) -> list[str]:
     return files
 
 
+def detect_frameworks(root: str) -> frozenset[str]:
+    """Nomes dos frameworks detectados nos manifestos do topo do target (delega ao domínio)."""
+    return frozenset(fw.value for fw in fw_detect(_read_manifests(root)))
+
+
 def discover_surface(root: str) -> tuple[SurfaceElement, ...]:
-    """Varre o código-fonte e localiza entrypoints, sinks e ativos por marcadores estáticos. Determinístico."""
+    """Varre o fonte e localiza entrypoints/sinks/ativos por marcadores genéricos + os do framework detectado."""
+    combined: list[tuple[str, str, re.Pattern[str], tuple[Stride, ...], str]] = [
+        (k, lbl, pat, cats, "") for k, lbl, pat, cats in _MARKERS
+    ]
+    for fw in fw_detect(_read_manifests(root)):
+        for k, lbl, pat, cats in markers_for(frozenset({fw})):
+            combined.append((k, lbl, pat, cats, fw.value))
     elements: list[SurfaceElement] = []
     for path in _iter_source_files(root):
         try:
@@ -166,13 +185,31 @@ def discover_surface(root: str) -> tuple[SurfaceElement, ...]:
             continue
         rel = os.path.relpath(path, root).replace("\\", "/")
         for lineno, text in enumerate(lines, start=1):
-            for kind, label, pattern, cats in _MARKERS:
+            for kind, label, pattern, cats, fwname in combined:
                 if pattern.search(text):
                     elements.append(SurfaceElement(
                         kind=kind, label=label, file=rel, line=lineno,
-                        evidence=text.strip()[:160], stride=frozenset(cats),
+                        evidence=text.strip()[:160], stride=frozenset(cats), framework=fwname,
                     ))
     return tuple(elements)
+
+
+def _read_manifests(root: str) -> dict[str, str]:
+    manifests: dict[str, str] = {}
+    try:
+        entries = os.listdir(root)
+    except OSError:
+        return manifests
+    for entry in entries:
+        if entry.lower() in _MANIFESTS:
+            path = os.path.join(root, entry)
+            try:
+                if os.path.isfile(path) and os.path.getsize(path) <= _MAX_BYTES:
+                    with open(path, encoding="utf-8", errors="replace") as fh:
+                        manifests[entry.lower()] = fh.read()
+            except OSError:
+                continue
+    return manifests
 
 
 def build_threat_model(target: str, findings: tuple[Finding, ...]) -> ThreatModel:
@@ -188,11 +225,13 @@ def render_json(tm: ThreatModel) -> str:
         "target": tm.target,
         "note": "Scaffold DETERMINÍSTICO (keyless). Complete o raciocínio com seu agente de IA.",
         "surface_count": len(tm.surface),
+        "frameworks": sorted(detect_frameworks(tm.target)),
         "categories": {
             s.value: {
                 "name": s.label,
                 "surface": [
-                    {"kind": e.kind, "label": e.label, "file": e.file, "line": e.line, "evidence": e.evidence}
+                    {"kind": e.kind, "label": e.label, "file": e.file, "line": e.line,
+                     "evidence": e.evidence, **({"framework": e.framework} if e.framework else {})}
                     for e in g.surface
                 ],
                 "findings": [
