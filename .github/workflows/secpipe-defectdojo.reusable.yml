@@ -8,7 +8,7 @@ on:
   workflow_call:
     inputs:
       config: { type: string, default: ".secpipe.yml" }
-      image:  { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:08be58113633adb5a13ece34e6fee2180755a2446120bc9446d210a26df9b34e" }
+      image:  { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:e3bbd4b3ce67e329ab1e9df0c0e6390df5968efc69379f47c7bc9b2f4fe07e69" }
     secrets:
       DEFECTDOJO_URL:   { required: true }
       DEFECTDOJO_TOKEN: { required: true }
