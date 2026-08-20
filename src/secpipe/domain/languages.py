@@ -53,4 +53,6 @@ def scanners_for(langs: set[str]) -> list[str]:
         scanners.append("gosec")                   # SAST de Go (requer toolchain go)
     if "javascript" in langs:
         scanners.append("npm-audit")               # SCA JS (requer npm + package-lock.json)
+    if {"python", "javascript"} & langs:
+        scanners.append("malicious-deps")          # typosquat/dependency-confusion (offline, barato)
     return scanners

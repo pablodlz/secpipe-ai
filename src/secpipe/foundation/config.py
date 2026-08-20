@@ -60,6 +60,7 @@ class Config:
     enrich_kev: bool = False   # anexar flag CISA KEV aos achados com CVE (opt-in: usa rede)
     kev_blocks: bool = True    # achado no KEV bloqueia o gate (só morde quando enrich_kev está ligado)
     cache_dir: str = ".secpipe/cache"  # cache de EPSS/KEV (TTL) p/ modo offline
+    internal_prefixes: tuple[str, ...] = field(default_factory=tuple)  # p/ malicious-deps (dependency-confusion)
 
     @staticmethod
     def default() -> Config:
@@ -76,6 +77,7 @@ class Config:
         require = d.get("require")
         mins = d.get("min_scanners")
         kev_blocks = d.get("kev_blocks")
+        prefixes = d.get("internal_prefixes")
         return Config(
             scanners=tuple(scanners) if isinstance(scanners, list) else _DEFAULT_SCANNERS,
             block_severity=str(block) if isinstance(block, str) else _DEFAULT_BLOCK_SEVERITY,
@@ -90,6 +92,7 @@ class Config:
             enrich_kev=_read_enrich(d, "kev"),
             kev_blocks=kev_blocks if isinstance(kev_blocks, bool) else True,
             cache_dir=str(d.get("cache_dir")) if isinstance(d.get("cache_dir"), str) else ".secpipe/cache",
+            internal_prefixes=tuple(str(x) for x in prefixes) if isinstance(prefixes, list) else (),
         )
 
     @staticmethod

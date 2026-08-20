@@ -40,4 +40,4 @@ def test_scanners_for_go_adds_gosec() -> None:
 
 def test_scanners_for_core_unchanged() -> None:
     assert scanners_for(set()) == ["gitleaks", "semgrep", "trivy"]
-    assert scanners_for({"python"}) == ["gitleaks", "semgrep", "trivy", "bandit", "pip-audit"]
+    assert scanners_for({"python"}) == ["gitleaks", "semgrep", "trivy", "bandit", "pip-audit", "malicious-deps"]

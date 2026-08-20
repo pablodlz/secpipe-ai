@@ -10,6 +10,7 @@ from secpipe.adapters.gitleaks_history import GitleaksHistoryScanner
 from secpipe.adapters.gosec import GosecScanner
 from secpipe.adapters.hadolint import HadolintScanner
 from secpipe.adapters.license_scan import LicenseScanner
+from secpipe.adapters.malicious_deps import MaliciousDepsScanner
 from secpipe.adapters.npm_audit import NpmAuditScanner
 from secpipe.adapters.osv_scanner import OsvScanner
 from secpipe.adapters.pip_audit import PipAuditScanner
@@ -39,6 +40,7 @@ _SCANNER_REGISTRY: dict[str, type] = {
     "dast": ZapDastScanner,   # DAST (ZAP baseline) — opt-in; precisa de dast_target na config
     "image": TrivyImageScanner,     # scan de imagem de container (trivy image) — opt-in; precisa image_target
     "license": LicenseScanner,      # conformidade de licencas (trivy) — opt-in; precisa politica licenses
+    "malicious-deps": MaliciousDepsScanner,  # typosquat/dependency-confusion (offline) — usa internal_prefixes
 }
 
 
@@ -52,6 +54,8 @@ def build_scanners(config: Config) -> tuple[ScannerPort, ...]:
             scanners.append(TrivyImageScanner(config.image_target))
         elif name == "license":
             scanners.append(LicenseScanner(config.license_policy))
+        elif name == "malicious-deps":
+            scanners.append(MaliciousDepsScanner(config.internal_prefixes))
         else:
             factory = _SCANNER_REGISTRY.get(name)
             if factory is not None:
