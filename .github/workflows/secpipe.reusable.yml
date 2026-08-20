@@ -11,7 +11,7 @@ on:
       # entrega {workflow + motor} reproduzíveis. Os DBs de vuln (trivy/semgrep) são baixados em runtime,
       # então a detecção continua atual mesmo com a imagem pinada. Refresque o digest a cada release do motor.
       # Bleeding-edge: o consumidor pode sobrescrever este input com "...:latest".
-      image:  { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:e3bbd4b3ce67e329ab1e9df0c0e6390df5968efc69379f47c7bc9b2f4fe07e69" }
+      image:  { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:97465550a74de5de4e7dda7190f3b893353c8dfec39c12739ec6123149a70b73" }
     # secrets: (Fase 3) chaves de IA para o auto-fix, passadas pelo consumidor
 permissions:
   contents: read
