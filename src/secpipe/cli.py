@@ -11,6 +11,7 @@ import sys
 
 from secpipe import __version__
 from secpipe.adapters.dast_zap import parse_zap_report
+from secpipe.adapters.epss_kev import enrich_report
 from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
 from secpipe.adapters.sarif import parse_sarif
@@ -46,10 +47,14 @@ NO_SCANNER_WARN = (
 )
 
 
-def _cmd_scan(config_path: str | None, target: str, fmt: str) -> int:
+def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = False) -> int:
     cfg = Config.load(config_path)
-    orchestrator = build(cfg)
-    report, decision = orchestrator.run(target)
+    report, decision = build(cfg).run(target)
+    do_epss, do_kev = enrich or cfg.enrich_epss, enrich or cfg.enrich_kev
+    if do_epss or do_kev:
+        # EPSS/KEV: anota (fail-open) e re-avalia o gate (KEV pode bloquear).
+        report = enrich_report(report, cfg.cache_dir, epss=do_epss, kev=do_kev)
+        decision = build_policy(cfg).evaluate(report)
     reporter = SarifReporter() if fmt == "sarif" else JsonReporter()
     print(reporter.render(report))
     if report.ran == 0:
@@ -210,6 +215,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--config", default=None, help="caminho do .secpipe.yml (default: auto)")
     scan.add_argument("--format", dest="fmt", choices=["json", "sarif"], default="json",
                       help="formato de saida (default: json para a IA; sarif para code scanning)")
+    scan.add_argument("--enrich", action="store_true",
+                      help="anexa EPSS + CISA KEV aos achados com CVE (usa rede; KEV bloqueia)")
     init = sub.add_parser("init", help="adota o secpipe no projeto (config + AGENTS.md + hook + workflow)")
     init.add_argument("target", nargs="?", default=".", help="diretorio do projeto (default: .)")
     init.add_argument("--force", action="store_true", help="sobrescreve arquivos existentes")
@@ -271,7 +278,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return _cmd_doctor()
     if args.command == "scan":
-        return _cmd_scan(args.config, args.target, args.fmt)
+        return _cmd_scan(args.config, args.target, args.fmt, args.enrich)
     if args.command == "init":
         return _cmd_init(args)
     if args.command == "hook":

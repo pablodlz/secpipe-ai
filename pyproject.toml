@@ -38,6 +38,9 @@ select = ["E", "F", "B", "S", "I", "UP"]
 "src/secpipe/application/use_cases/init.py" = ["S603", "S607"]
 "src/secpipe/application/use_cases/precommit.py" = ["S603", "S607"]
 "src/secpipe/application/use_cases/verify.py" = ["S603", "S607"]
+# epss_kev.py: urlopen (S310) com URL FIXA validada p/ https (api.first.org / cisa.gov). Sem interpolação
+# de dado do repo; consulta só por CVE público. Decisão revisada a nível de projeto, não inline.
+"src/secpipe/adapters/epss_kev.py" = ["S310"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -52,4 +55,5 @@ addopts = "-ra"
 exclude_dirs = ["tests"]
 # subprocess legítimo e seguro (ver adapters/base.py::run_tool) — decisão revisada, não inline.
 # B404 (import subprocess), B603 (call sem shell), B607 (path parcial — resolvido por which).
-skips = ["B404", "B603", "B607"]
+# B310 (urlopen): só em epss_kev.py, URL fixa validada p/ https (EPSS/KEV públicos) — revisado.
+skips = ["B404", "B603", "B607", "B310"]

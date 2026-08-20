@@ -22,6 +22,14 @@ def _read_dast_target(d: dict[str, object]) -> str:
     return flat if isinstance(flat, str) else ""
 
 
+def _read_enrich(d: dict[str, object], key: str) -> bool:
+    """Lê `enrich: {epss: bool, kev: bool}`. Default False (evita rede no zero-config offline)."""
+    enrich = d.get("enrich")
+    if isinstance(enrich, dict):
+        return bool(enrich.get(key, False))
+    return False
+
+
 def _read_license_policy(d: dict[str, object]) -> LicensePolicy | None:
     """Lê `licenses: {deny, allow, unknown_is}`. None se ausente (scanner 'license' desligado)."""
     lic = d.get("licenses")
@@ -48,6 +56,10 @@ class Config:
     require_scanners: tuple[str, ...] = field(default_factory=tuple)  # scanners que DEVEM ter rodado (opt-in)
     image_target: str = ""  # ref de imagem p/ o scanner 'image' (trivy image). Vazio = desligado.
     license_policy: LicensePolicy | None = None  # política de licenças p/ o scanner 'license'. None = desligado.
+    enrich_epss: bool = False  # anexar EPSS aos achados com CVE (opt-in: usa rede)
+    enrich_kev: bool = False   # anexar flag CISA KEV aos achados com CVE (opt-in: usa rede)
+    kev_blocks: bool = True    # achado no KEV bloqueia o gate (só morde quando enrich_kev está ligado)
+    cache_dir: str = ".secpipe/cache"  # cache de EPSS/KEV (TTL) p/ modo offline
 
     @staticmethod
     def default() -> Config:
@@ -63,6 +75,7 @@ class Config:
         test_cmd = d.get("test_command")
         require = d.get("require")
         mins = d.get("min_scanners")
+        kev_blocks = d.get("kev_blocks")
         return Config(
             scanners=tuple(scanners) if isinstance(scanners, list) else _DEFAULT_SCANNERS,
             block_severity=str(block) if isinstance(block, str) else _DEFAULT_BLOCK_SEVERITY,
@@ -73,6 +86,10 @@ class Config:
             require_scanners=tuple(str(x) for x in require) if isinstance(require, list) else (),
             image_target=str(d.get("image_target") or "") if isinstance(d.get("image_target"), str) else "",
             license_policy=_read_license_policy(d),
+            enrich_epss=_read_enrich(d, "epss"),
+            enrich_kev=_read_enrich(d, "kev"),
+            kev_blocks=kev_blocks if isinstance(kev_blocks, bool) else True,
+            cache_dir=str(d.get("cache_dir")) if isinstance(d.get("cache_dir"), str) else ".secpipe/cache",
         )
 
     @staticmethod

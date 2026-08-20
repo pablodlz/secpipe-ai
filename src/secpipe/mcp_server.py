@@ -12,13 +12,14 @@ import sys
 from typing import Any
 
 from secpipe import __version__
+from secpipe.adapters.epss_kev import enrich_report
 from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter
 from secpipe.application.use_cases.threat_model import build_threat_model
 from secpipe.application.use_cases.threat_model import render_json as tm_render_json
 from secpipe.application.use_cases.verify import verify as run_verify
 from secpipe.domain.fix_memory import VerifiedFix
-from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build, build_fixer
+from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build, build_fixer, build_policy
 from secpipe.foundation.config import Config
 
 _STR = {"type": "string"}
@@ -28,9 +29,10 @@ TOOLS: list[dict[str, Any]] = [
     {"name": "secpipe_scan",
      "description": "DETECT: escaneia o alvo (5 scanners free), normaliza e devolve os achados (JSON, "
                     "cada um com `cwe`, `severity`, `file`, `line`, `fingerprint` e `escalate`) + o "
-                    "veredito do gate. Comece o loop por aqui.",
+                    "veredito do gate. Comece o loop por aqui. `enrich` anexa EPSS/KEV (KEV bloqueia).",
      "inputSchema": {"type": "object",
-                     "properties": {"target": _STR, "config": _STR}, "required": []}},
+                     "properties": {"target": _STR, "config": _STR, "enrich": {"type": "boolean"}},
+                     "required": []}},
     {"name": "secpipe_verify",
      "description": "VERIFY: juiz DETERMINÍSTICO e keyless do fix — gate (achados resolvidos) + "
                     "ausência de supressão no diff + testes. Devolve {accepted, reasons}. Só ACCEPT fecha.",
@@ -80,6 +82,11 @@ class SecpipeMcpTools:
     def _scan(self, args: dict[str, Any]) -> dict[str, Any]:
         cfg = Config.load(args.get("config"))
         report, decision = build(cfg).run(_s(args, "target", "."))
+        enrich = bool(args.get("enrich"))
+        do_epss, do_kev = enrich or cfg.enrich_epss, enrich or cfg.enrich_kev
+        if do_epss or do_kev:
+            report = enrich_report(report, cfg.cache_dir, epss=do_epss, kev=do_kev)
+            decision = build_policy(cfg).evaluate(report)
         payload: dict[str, Any] = json.loads(JsonReporter().render(report))
         payload["gate"] = {"passed": decision.passed, "reason": decision.reason}
         return payload
