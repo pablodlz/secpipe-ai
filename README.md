@@ -252,6 +252,7 @@ the loop with **structured JSON**, no shell parsing:
 | `secpipe_recall` / `secpipe_remember` | verified-fix memory (patterns, never code) |
 | `secpipe_doctor` | tool availability |
 | `secpipe_threat_model` | STRIDE threat-model scaffold (keyless) |
+| `secpipe_sbom` | Software Bill of Materials (CycloneDX/SPDX) |
 
 The server is **JSON-RPC 2.0 over stdio, stdlib-only** (zero external dependency — a smaller supply-chain surface,
 fitting for a security tool) and **local** by design. It's the *ergonomic* layer; enforcement stays in the hooks + CI.
@@ -263,32 +264,39 @@ fitting for a security tool) and **local** by design. It's the *ergonomic* layer
 | Command | What it does |
 | --- | --- |
 | `secpipe init` | Adopt secpipe in a project (config + `AGENTS.md` + hook + workflow + `.mcp.json`) |
-| `secpipe scan [--format json\|sarif]` | Run the scanners, normalize, apply the gate |
+| `secpipe scan [--format json\|sarif\|html\|md\|github] [--enrich] [--diff-base REF] [--reachability]` | Run scanners, normalize, apply the gate |
 | `secpipe fix [--dry-run]` | Apply deterministic codemods |
 | `secpipe verify [--base REF]` | Deterministic judge: gate + no-suppression + tests |
-| `secpipe threat-model [--format md\|json]` | STRIDE threat-model of your app (keyless scaffold) |
-| `secpipe dast-import <report.json>` | Normalize a ZAP report into the gate (CI DAST bridge) |
-| `secpipe hook` | Pre-commit enforcement (blocks suppression + staged secrets) |
-| `secpipe mcp` | Start the MCP server (stdio) |
-| `secpipe remember` / `recall` | Record / recall verified-fix patterns |
-| `secpipe doctor` | Show which scanners are available |
+| `secpipe autofix --headless` | **Opt-in, keyed** AI PR-bot: fix → deterministic verify → open PR (never auto-merge) |
+| `secpipe threat-model [--format md\|json\|threat-dragon]` | STRIDE threat-model of your app (keyless; framework-aware) |
+| `secpipe import <file.sarif>` · `dast-import <zap.json>` | Normalize any external SARIF / ZAP report into the gate |
+| `secpipe image <ref>` · `sbom [--format cyclonedx\|spdx]` · `badge` | Container-image scan · SBOM · SVG badge |
+| `secpipe report --defectdojo` | Export findings to DefectDojo (opt-in, keyed) |
+| `secpipe config-validate` · `policy-lock` · `policy-check` · `waiver-list` | Policy tooling (anti-tamper, exceptions) |
+| `secpipe hook` · `mcp` · `remember`/`recall` · `doctor` · `version` | Enforcement · MCP server · fix-memory · tools · version |
 
 ---
 
 ## 🧰 What's inside (all free)
 
-| Dimension | Tools composed |
+| Dimension | Tools / capabilities composed |
 | --- | --- |
-| **SAST** | Semgrep CE · Bandit (Python) |
-| **SCA** | Trivy · pip-audit (Python) |
-| **Secrets** | gitleaks |
-| **IaC / containers** | Trivy |
-| **DAST** (opt-in) | OWASP ZAP baseline — normalized into the same gate |
-| **Threat modeling** | STRIDE scaffold, keyless (`secpipe threat-model`) |
-| **Remediation** | Codemodder (Pixee) — deterministic codemods |
-| **Supply-chain** | OpenSSF Scorecard · StepSecurity Harden-Runner · SHA-pinned actions · Dependabot |
+| **SAST** | Semgrep CE · Bandit (Python) · **gosec** (Go) |
+| **SCA** | Trivy · pip-audit · **npm-audit** · **osv-scanner** (multi-ecosystem) |
+| **Secrets** | gitleaks (filesystem **+ full git history**) |
+| **IaC / containers** | Trivy · **Checkov** (Terraform/K8s/CFN) · **hadolint** (Dockerfile) · **`trivy image`** |
+| **DAST** (opt-in) | OWASP ZAP — **baseline / full / authenticated** · DAST↔SAST correlation |
+| **Malicious deps** | **typosquat · dependency-confusion · install-hook** (offline heuristic) |
+| **License** | SPDX **deny/allow** policy (via Trivy) |
+| **Prioritization** | **EPSS + CISA KEV** (KEV blocks) · reachability-lite · triage hints |
+| **Threat modeling** | STRIDE scaffold, keyless · **framework-aware** · **Threat Dragon** export |
+| **Remediation** | Codemodder (deterministic) · **headless AI PR-bot** (opt-in, verified) |
+| **Policy engine** | fail-closed **coverage gate** · **policy-as-code** · **waivers** · **diff-scope** · **gate-integrity lock** |
+| **Reporting** | JSON · SARIF · HTML · Markdown · GitHub annotations · badge · DefectDojo |
+| **Supply-chain (engine)** | **SBOM (CycloneDX)** · **cosign keyless signing** · **SLSA provenance** · SHA-pinned actions · OpenSSF Scorecard · Harden-Runner · Dependabot |
 
 Missing tools simply `skip` (they never break the run); a scanner that **errors** trips the **fail-closed** gate.
+The published image bundles all scanners, is **signed** (keyless), and the reusable workflow **pins it by digest**.
 
 ---
 
@@ -321,13 +329,15 @@ See [`SECURITY.md`](SECURITY.md) and the threat model in [`docs/specs/03-securit
 
 ## 📈 Status & roadmap
 
-**Core complete (v0.5.0):** engine · 5 static scanners + **DAST (ZAP baseline, opt-in)** · **STRIDE threat-model**
-(keyless) · SARIF/CWE contract · fail-closed gate · `init`/`hook` adoption · **keyless Detect→Repair→Verify** ·
-deterministic verifier · abstention · fix memory · **MCP server** · **digest-pinned** container image · green CI.
+**Roadmap complete (v0.6.0):** **8+ scanners** (SAST/SCA/secrets/IaC/DAST/malicious-deps/license/image) ·
+**EPSS + KEV** prioritization · **STRIDE threat-model** (framework-aware + Threat Dragon) · **keyless
+Detect→Repair→Verify** + **headless AI PR-bot** (opt-in) · full **policy engine** (coverage-gate · policy-as-code ·
+waivers · diff-scope · gate-integrity lock) · reporters (JSON/SARIF/HTML/MD/badge/annotations) · **DefectDojo**
+export · **SBOM + cosign keyless signing + SLSA provenance** · MCP server · **signed, digest-pinned** image · green CI.
 
 ```mermaid
 flowchart LR
-    P0["Phase 0<br/>Foundation ✅"] --> P1["Phase 1<br/>Scan engine ✅"] --> P2["Phase 2<br/>Adoption ✅"] --> P3["Phase 3<br/>Auto-fix DRV ✅"] --> P4["Phase 4<br/>Integrate everywhere ▶"]
+    P0["Phase 0<br/>Foundation ✅"] --> P1["Phase 1<br/>Scan engine ✅"] --> P2["Phase 2<br/>Adoption ✅"] --> P3["Phase 3<br/>Auto-fix DRV ✅"] --> P4["Phase 4<br/>Full roadmap ✅"]
 ```
 
 Full plan and design specs live in [`docs/specs/`](docs/specs/) (foundation-to-features, incl. the strategies
