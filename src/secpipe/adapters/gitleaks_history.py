@@ -6,7 +6,6 @@ Opt-in: pode ser lento em repos grandes; SKIPPED fora de repo git."""
 from __future__ import annotations
 
 import dataclasses
-import json
 import os
 import tempfile
 
@@ -46,7 +45,7 @@ class GitleaksHistoryScanner:
             try:
                 with open(report, encoding="utf-8") as fh:
                     base = parse_gitleaks(fh.read())
-            except (OSError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError) as exc:
                 return ScanResult(self.name, ScanStatus.ERROR, (), f"report ilegivel: {exc}")
             # re-tag: deixa claro que é do histórico e orienta ROTAÇÃO (não só remoção).
             findings = tuple(

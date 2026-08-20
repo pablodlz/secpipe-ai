@@ -51,12 +51,12 @@ def test_anthropic_parses_response(monkeypatch) -> None:
         def __enter__(self): return self
         def __exit__(self, *a): return False
 
-    def fake_urlopen(req, timeout=0, context=None):
+    def fake_open(req, *, timeout=0, context=None):
         captured["url"] = req.full_url
-        captured["headers"] = req.headers
+        captured["headers"] = dict(req.headers)
         return _Resp(json.dumps({"content": [{"type": "text", "text": "--- a\n+++ b\n"}]}).encode())
 
-    monkeypatch.setattr(aip.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(aip, "open_no_redirect", fake_open)
     out = AnthropicProvider().complete("fix this")
     assert out.startswith("--- a") and "api.anthropic.com" in str(captured["url"])
 

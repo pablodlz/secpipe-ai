@@ -32,6 +32,11 @@ _MAX_FILES = 4000
 _MAX_BYTES = 1_500_000  # arquivo maior que isso é provavelmente gerado/minificado -> pula
 
 
+def _cell(text: str) -> str:
+    """Neutraliza pipe/quebra/backtick de dado de terceiro numa célula/bullet Markdown (anti-injeção)."""
+    return text.replace("|", "\\|").replace("`", "'").replace("\r", " ").replace("\n", " ").strip()[:160]
+
+
 @dataclass(frozen=True, slots=True)
 class SurfaceElement:
     kind: str                 # "entrypoint" | "sink" | "asset"
@@ -267,12 +272,12 @@ def render_markdown(tm: ThreatModel) -> str:
             out.append("| --- | --- | --- | --- |")
             for f in sorted(finds, key=lambda x: x.severity, reverse=True)[:15]:
                 loc = f"{f.file}:{f.line}" if f.file else "-"
-                out.append(f"| {f.severity.name} | {f.cwe or '-'} | `{f.rule_id}` | {loc} |")
+                out.append(f"| {f.severity.name} | {_cell(f.cwe or '-')} | `{_cell(f.rule_id)}` | {_cell(loc)} |")
             out.append("")
         if surf:
             out.append("**Superfície de ataque (amostra):**\n")
             for e in surf[:12]:
-                out.append(f"- `{e.file}:{e.line}` — **{e.label}** ({e.kind}): `{e.evidence}`")
+                out.append(f"- `{_cell(e.file)}:{e.line}` — **{_cell(e.label)}** ({e.kind}): `{_cell(e.evidence)}`")
             if len(surf) > 12:
                 out.append(f"- … +{len(surf) - 12} outro(s)")
             out.append("")

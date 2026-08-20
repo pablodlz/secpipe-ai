@@ -5,6 +5,7 @@ modo offline/determinístico. Consulta SÓ por CVE público — nenhum dado do r
 from __future__ import annotations
 
 import dataclasses
+import http.client
 import json
 import os
 import ssl
@@ -61,7 +62,7 @@ def fetch_kev(cache_dir: str, *, timeout: int = 20) -> set[str]:
         try:
             raw = _get(_KEV_URL, timeout).decode("utf-8", "replace")
             _write_cache(cache, raw)
-        except (urllib.error.URLError, OSError, ValueError, TimeoutError):
+        except (urllib.error.URLError, OSError, ValueError, TimeoutError, http.client.HTTPException):
             return set()
     try:
         data = json.loads(raw)
@@ -79,7 +80,8 @@ def fetch_epss(cves: Iterable[str], *, timeout: int = 20) -> dict[str, float]:
         url = f"{_EPSS_URL}?cve={','.join(unique[i:i + _BATCH])}"
         try:
             data = json.loads(_get(url, timeout).decode("utf-8", "replace"))
-        except (urllib.error.URLError, OSError, ValueError, TimeoutError, json.JSONDecodeError):
+        except (urllib.error.URLError, OSError, ValueError, TimeoutError,
+                json.JSONDecodeError, http.client.HTTPException):
             continue
         for row in data.get("data", []) if isinstance(data, dict) else []:
             if not isinstance(row, dict):

@@ -37,6 +37,8 @@ def parse_zap_report(raw: str) -> list[Finding]:
     if not raw.strip():
         return []
     doc = json.loads(raw)
+    if not isinstance(doc, dict):   # JSON válido não-objeto -> ERROR fail-closed (achado #11)
+        raise ValueError("ZAP: o topo do relatorio nao e um objeto")
     findings: list[Finding] = []
     for site in doc.get("site") or []:
         if not isinstance(site, dict):
