@@ -251,6 +251,7 @@ the loop with **structured JSON**, no shell parsing:
 | `secpipe_verify` | VERIFY — deterministic judge |
 | `secpipe_recall` / `secpipe_remember` | verified-fix memory (patterns, never code) |
 | `secpipe_doctor` | tool availability |
+| `secpipe_threat_model` | STRIDE threat-model scaffold (keyless) |
 
 The server is **JSON-RPC 2.0 over stdio, stdlib-only** (zero external dependency — a smaller supply-chain surface,
 fitting for a security tool) and **local** by design. It's the *ergonomic* layer; enforcement stays in the hooks + CI.
@@ -265,6 +266,8 @@ fitting for a security tool) and **local** by design. It's the *ergonomic* layer
 | `secpipe scan [--format json\|sarif]` | Run the scanners, normalize, apply the gate |
 | `secpipe fix [--dry-run]` | Apply deterministic codemods |
 | `secpipe verify [--base REF]` | Deterministic judge: gate + no-suppression + tests |
+| `secpipe threat-model [--format md\|json]` | STRIDE threat-model of your app (keyless scaffold) |
+| `secpipe dast-import <report.json>` | Normalize a ZAP report into the gate (CI DAST bridge) |
 | `secpipe hook` | Pre-commit enforcement (blocks suppression + staged secrets) |
 | `secpipe mcp` | Start the MCP server (stdio) |
 | `secpipe remember` / `recall` | Record / recall verified-fix patterns |
@@ -280,6 +283,8 @@ fitting for a security tool) and **local** by design. It's the *ergonomic* layer
 | **SCA** | Trivy · pip-audit (Python) |
 | **Secrets** | gitleaks |
 | **IaC / containers** | Trivy |
+| **DAST** (opt-in) | OWASP ZAP baseline — normalized into the same gate |
+| **Threat modeling** | STRIDE scaffold, keyless (`secpipe threat-model`) |
 | **Remediation** | Codemodder (Pixee) — deterministic codemods |
 | **Supply-chain** | OpenSSF Scorecard · StepSecurity Harden-Runner · SHA-pinned actions · Dependabot |
 
@@ -316,9 +321,9 @@ See [`SECURITY.md`](SECURITY.md) and the threat model in [`docs/specs/03-securit
 
 ## 📈 Status & roadmap
 
-**Core complete (v0.4.0):** engine · 5 real scanners · SARIF/CWE contract · fail-closed gate · `init`/`hook`
-adoption · **keyless Detect→Repair→Verify** · deterministic verifier · abstention · fix memory · **MCP server** ·
-public container image · green CI.
+**Core complete (v0.5.0):** engine · 5 static scanners + **DAST (ZAP baseline, opt-in)** · **STRIDE threat-model**
+(keyless) · SARIF/CWE contract · fail-closed gate · `init`/`hook` adoption · **keyless Detect→Repair→Verify** ·
+deterministic verifier · abstention · fix memory · **MCP server** · **digest-pinned** container image · green CI.
 
 ```mermaid
 flowchart LR
