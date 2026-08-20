@@ -7,6 +7,7 @@ import json
 from secpipe.domain import Report, Severity
 from secpipe.domain.abstention import escalates
 from secpipe.domain.correlation import correlate
+from secpipe.domain.triage import triage
 
 # nossa severidade -> SARIF level + security-severity numérica (convenção GitHub)
 _LEVEL = {
@@ -52,6 +53,7 @@ class JsonReporter:
                     **({"epss": f.epss} if f.epss is not None else {}),
                     **({"kev": True} if f.kev else {}),
                     **({"correlated": True} if f.cwe in correlated_cwes else {}),
+                    "triage": triage(f),   # contexto p/ priorizar (NUNCA muda o gate)
                 }
                 for f in findings
             ],
