@@ -9,6 +9,8 @@ on:
 permissions:
   contents: read
   packages: write        # necessário para o push no ghcr
+  id-token: write        # OIDC keyless (cosign sign/attest via Sigstore — SEM chave guardada)
+  attestations: write    # actions/attest-build-provenance (provenance SLSA)
 jobs:
   build-push:
     runs-on: ubuntu-latest
@@ -31,9 +33,31 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=latest
       - name: Build & push
+        id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      # Supply-chain do MOTOR (RK-02): SBOM + assinatura KEYLESS (OIDC) + provenance SLSA. Tudo por DIGEST.
+      - name: Instala cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da  # v3.7.0
+      - name: SBOM CycloneDX da imagem (Syft)
+        uses: anchore/sbom-action@df80a981bc6edbc4e220a492d3cbe9f5547a6e75  # v0.17.9
+        with:
+          image: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+      - name: Assina a imagem + atesta o SBOM (cosign KEYLESS)
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "$IMAGE"
+          cosign attest --yes --type cyclonedx --predicate sbom.cdx.json "$IMAGE"
+      - name: Provenance SLSA (build-provenance, anexada ao ghcr)
+        uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4  # v2.2.0
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
