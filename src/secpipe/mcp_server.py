@@ -15,6 +15,7 @@ from secpipe import __version__
 from secpipe.adapters.epss_kev import enrich_report
 from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter
+from secpipe.adapters.sbom import emit_sbom
 from secpipe.application.use_cases.threat_model import build_threat_model
 from secpipe.application.use_cases.threat_model import render_json as tm_render_json
 from secpipe.application.use_cases.verify import verify as run_verify
@@ -60,6 +61,11 @@ TOOLS: list[dict[str, Any]] = [
                     "categorias com achados, superfície e checklists para VOCÊ (o agente) completar o raciocínio.",
      "inputSchema": {"type": "object",
                      "properties": {"target": _STR, "config": _STR}, "required": []}},
+    {"name": "secpipe_sbom",
+     "description": "SBOM: gera o Software Bill of Materials (CycloneDX default, ou SPDX) do alvo via "
+                    "syft/trivy. Base p/ supply-chain. Devolve {ran, tool, format, bytes}.",
+     "inputSchema": {"type": "object",
+                     "properties": {"target": _STR, "format": _STR}, "required": []}},
 ]
 
 
@@ -74,6 +80,7 @@ class SecpipeMcpTools:
             "secpipe_scan": self._scan, "secpipe_verify": self._verify, "secpipe_fix": self._fix,
             "secpipe_recall": self._recall, "secpipe_remember": self._remember,
             "secpipe_doctor": self._doctor, "secpipe_threat_model": self._threat_model,
+            "secpipe_sbom": self._sbom,
         }.get(name)
         if handler is None:
             return {"error": f"unknown tool: {name}"}
@@ -116,6 +123,12 @@ class SecpipeMcpTools:
 
     def _doctor(self, args: dict[str, Any]) -> dict[str, Any]:
         return {"tools": {name: factory().is_available() for name, factory in _SCANNER_REGISTRY.items()}}
+
+    def _sbom(self, args: dict[str, Any]) -> dict[str, Any]:
+        result = emit_sbom(_s(args, "target", "."), _s(args, "format", "cyclonedx"))
+        # não despeja o SBOM inteiro no canal MCP — só metadados + tamanho.
+        return {"ran": result.ran, "tool": result.tool, "format": result.fmt,
+                "bytes": len(result.document), "detail": result.detail}
 
     def _threat_model(self, args: dict[str, Any]) -> dict[str, Any]:
         cfg = Config.load(args.get("config"))
