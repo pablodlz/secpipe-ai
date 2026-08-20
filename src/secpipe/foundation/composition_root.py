@@ -39,7 +39,11 @@ def build_scanners(config: Config) -> tuple[ScannerPort, ...]:
 
 
 def build_policy(config: Config) -> GatePolicy:
-    return GatePolicy(block_severity=Severity.parse(config.block_severity))
+    return GatePolicy(
+        block_severity=Severity.parse(config.block_severity),
+        min_scanners=config.min_scanners,
+        require_scanners=frozenset(config.require_scanners),
+    )
 
 
 def build(config: Config | None = None) -> Orchestrator:
