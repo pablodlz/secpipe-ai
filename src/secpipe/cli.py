@@ -6,6 +6,7 @@ Saída pensada para a IA consumir (JSON em `scan`). Exit code de `scan`/`verify`
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 
 from secpipe import __version__
@@ -130,6 +131,15 @@ def _cmd_threat_model(config_path: str | None, target: str, fmt: str) -> int:
     return 0
 
 
+def _cmd_image(config_path: str | None, ref: str) -> int:
+    """Escaneia uma IMAGEM de container (trivy image): SO + libs + misconfig + segredos, e aplica o gate."""
+    cfg = dataclasses.replace(Config.load(config_path), scanners=("image",), image_target=ref)
+    report, decision = build(cfg).run(".")
+    print(JsonReporter().render(report))
+    print(f"\nGATE (image): {'PASS' if decision.passed else 'FAIL'} - {decision.reason}", file=sys.stderr)
+    return 0 if decision.passed else 1
+
+
 def _cmd_import(config_path: str | None, sarif_path: str, tool: str) -> int:
     """Importa QUALQUER SARIF externo (CodeQL/Checkov/gosec/terceiros), normaliza e aplica o MESMO gate.
     Torna o secpipe o gate/normalizador universal do ecossistema (ADR-0004), sem reimplementar parsers."""
@@ -236,6 +246,9 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("sarif", help="caminho do arquivo .sarif")
     imp.add_argument("--tool", default="external", help="nome do tool de origem (default: external)")
     imp.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    img = sub.add_parser("image", help="escaneia uma imagem de container (trivy image) e aplica o gate")
+    img.add_argument("ref", help="ref da imagem ou tarball (ex.: ghcr.io/org/app:tag)")
+    img.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -281,6 +294,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_config_validate(args.config)
     if args.command == "import":
         return _cmd_import(args.config, args.sarif, args.tool)
+    if args.command == "image":
+        return _cmd_image(args.config, args.ref)
     if args.command == "version":
         print(__version__)
         return 0

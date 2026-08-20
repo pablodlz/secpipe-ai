@@ -6,6 +6,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 
+from secpipe.domain.licenses import LicensePolicy
+
 # Default FORTE (não é versão capada): conjunto recomendado de scanners e gate em HIGH.
 _DEFAULT_SCANNERS: tuple[str, ...] = ("gitleaks", "semgrep", "trivy")
 _DEFAULT_BLOCK_SEVERITY = "HIGH"
@@ -20,6 +22,21 @@ def _read_dast_target(d: dict[str, object]) -> str:
     return flat if isinstance(flat, str) else ""
 
 
+def _read_license_policy(d: dict[str, object]) -> LicensePolicy | None:
+    """Lê `licenses: {deny, allow, unknown_is}`. None se ausente (scanner 'license' desligado)."""
+    lic = d.get("licenses")
+    if not isinstance(lic, dict):
+        return None
+    deny = lic.get("deny")
+    allow = lic.get("allow")
+    unknown = lic.get("unknown_is")
+    return LicensePolicy(
+        deny=tuple(str(x) for x in deny) if isinstance(deny, list) else (),
+        allow=tuple(str(x) for x in allow) if isinstance(allow, list) else (),
+        unknown_is=str(unknown).upper() if isinstance(unknown, str) else "MEDIUM",
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class Config:
     scanners: tuple[str, ...] = _DEFAULT_SCANNERS
@@ -29,6 +46,8 @@ class Config:
     dast_target: str = ""  # URL alvo do DAST (ZAP baseline). Vazio = DAST desligado (estático plug-and-play).
     min_scanners: int = 1  # cobertura mínima: <1 => gate fail-closed (evita falso-verde de 0 scanners)
     require_scanners: tuple[str, ...] = field(default_factory=tuple)  # scanners que DEVEM ter rodado (opt-in)
+    image_target: str = ""  # ref de imagem p/ o scanner 'image' (trivy image). Vazio = desligado.
+    license_policy: LicensePolicy | None = None  # política de licenças p/ o scanner 'license'. None = desligado.
 
     @staticmethod
     def default() -> Config:
@@ -52,6 +71,8 @@ class Config:
             dast_target=_read_dast_target(d),
             min_scanners=mins if isinstance(mins, int) and not isinstance(mins, bool) and mins >= 0 else 1,
             require_scanners=tuple(str(x) for x in require) if isinstance(require, list) else (),
+            image_target=str(d.get("image_target") or "") if isinstance(d.get("image_target"), str) else "",
+            license_policy=_read_license_policy(d),
         )
 
     @staticmethod

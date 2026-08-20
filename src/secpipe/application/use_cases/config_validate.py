@@ -11,6 +11,7 @@ from secpipe.domain import Severity
 _KNOWN_KEYS = frozenset({
     "scanners", "block_severity", "languages", "test_command",
     "dast", "dast_target", "min_scanners", "require",
+    "image_target", "licenses",
 })
 
 
