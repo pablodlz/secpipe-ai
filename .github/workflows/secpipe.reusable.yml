@@ -7,7 +7,11 @@ on:
     inputs:
       target: { type: string, default: "." }
       config: { type: string, default: ".secpipe.yml" }
-      image:  { type: string, default: "ghcr.io/pablodlz/secpipe-ai:latest" }
+      # Imagem PINADA POR DIGEST (threat model S1: "pin por digest/SHA", não tag móvel) — assim `@v1`
+      # entrega {workflow + motor} reproduzíveis. Os DBs de vuln (trivy/semgrep) são baixados em runtime,
+      # então a detecção continua atual mesmo com a imagem pinada. Refresque o digest a cada release do motor.
+      # Bleeding-edge: o consumidor pode sobrescrever este input com "...:latest".
+      image:  { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:04834ff1cbfda009dd7113204c591e998824f20d6d6efc3a76efe2c59c505ce8" }
     # secrets: (Fase 3) chaves de IA para o auto-fix, passadas pelo consumidor
 permissions:
   contents: read
