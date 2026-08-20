@@ -1,6 +1,6 @@
 """CLI machine-first do secpipe.
 
-Comandos: doctor · scan · fix · verify · threat-model · dast-import · config-validate
+Comandos: doctor · scan · fix · verify · threat-model · dast-import · import · config-validate
 · init · hook · mcp · remember/recall · version.
 Saída pensada para a IA consumir (JSON em `scan`). Exit code de `scan`/`verify` reflete o gate."""
 from __future__ import annotations
@@ -12,6 +12,7 @@ from secpipe import __version__
 from secpipe.adapters.dast_zap import parse_zap_report
 from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
+from secpipe.adapters.sarif import parse_sarif
 from secpipe.application.use_cases.config_validate import validate_config
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.precommit import run as run_precommit
@@ -129,6 +130,29 @@ def _cmd_threat_model(config_path: str | None, target: str, fmt: str) -> int:
     return 0
 
 
+def _cmd_import(config_path: str | None, sarif_path: str, tool: str) -> int:
+    """Importa QUALQUER SARIF externo (CodeQL/Checkov/gosec/terceiros), normaliza e aplica o MESMO gate.
+    Torna o secpipe o gate/normalizador universal do ecossistema (ADR-0004), sem reimplementar parsers."""
+    cfg = Config.load(config_path)
+    try:
+        with open(sarif_path, encoding="utf-8", errors="replace") as fh:
+            raw = fh.read()
+    except OSError as exc:
+        print(f"secpipe import: nao consegui ler {sarif_path}: {exc}", file=sys.stderr)
+        return 2
+    try:
+        findings = parse_sarif(raw, tool)
+    except (ValueError, TypeError) as exc:
+        result = ScanResult(tool, ScanStatus.ERROR, (), f"SARIF invalido: {str(exc)[:200]}")
+    else:
+        result = ScanResult(tool, ScanStatus.OK, tuple(findings), "")
+    report = Report((result,))
+    decision = build_policy(cfg).evaluate(report)
+    print(JsonReporter().render(report))
+    print(f"\nGATE (import): {'PASS' if decision.passed else 'FAIL'} - {decision.reason}", file=sys.stderr)
+    return 0 if decision.passed else 1
+
+
 def _cmd_config_validate(config_path: str | None) -> int:
     """Valida o .secpipe.yml (chaves/valores/scanners) — pega misconfig que enfraqueceria o gate."""
     path = config_path or ".secpipe.yml"
@@ -208,6 +232,10 @@ def build_parser() -> argparse.ArgumentParser:
     di.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     cv = sub.add_parser("config-validate", help="valida o .secpipe.yml (pega chave/valor/scanner invalido)")
     cv.add_argument("--config", default=None, help="caminho do .secpipe.yml (default: .secpipe.yml)")
+    imp = sub.add_parser("import", help="importa um SARIF externo (CodeQL/Checkov/...), normaliza e aplica o gate")
+    imp.add_argument("sarif", help="caminho do arquivo .sarif")
+    imp.add_argument("--tool", default="external", help="nome do tool de origem (default: external)")
+    imp.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -251,6 +279,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_dast_import(args.config, args.report)
     if args.command == "config-validate":
         return _cmd_config_validate(args.config)
+    if args.command == "import":
+        return _cmd_import(args.config, args.sarif, args.tool)
     if args.command == "version":
         print(__version__)
         return 0
