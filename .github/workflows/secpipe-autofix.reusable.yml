@@ -1,0 +1,54 @@
+# Auto-fix HEADLESS por IA — OPT-IN e DEFAULT-OFF (a ÚNICA exceção com chave). Por padrão o secpipe é
+# KEYLESS (a IA que já opera o projeto corrige). Use isto só quando NÃO houver agente no loop (ex.: cron):
+#   jobs:
+#     autofix:
+#       uses: pablodlz/secpipe-ai/.github/workflows/secpipe-autofix.reusable.yml@v1
+#       secrets: { SECPIPE_AI_API_KEY: ${{ secrets.SECPIPE_AI_API_KEY }} }
+# Abre PR com os fixes VERIFICADOS (nunca auto-merge; main protegida). Fixes sensíveis (auth/cripto/segredo)
+# são ESCALADOS, nunca auto-corrigidos.
+name: secpipe-autofix-reusable
+on:
+  workflow_call:
+    inputs:
+      config:   { type: string, default: ".secpipe.yml" }
+      provider: { type: string, default: "" }          # anthropic | openai | "" (auto)
+      model:    { type: string, default: "" }
+      base_url: { type: string, default: "" }           # p/ modelo local (Ollama/vLLM) — sem chave
+      image:    { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:08be58113633adb5a13ece34e6fee2180755a2446120bc9446d210a26df9b34e" }
+    secrets:
+      SECPIPE_AI_API_KEY: { required: false }
+permissions:
+  contents: write          # p/ criar a branch do PR (nunca push direto na main protegida)
+  pull-requests: write     # p/ abrir o PR
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+        with: { egress-policy: audit }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: secpipe autofix --headless (verify determinístico antes de qualquer PR)
+        env:
+          SECPIPE_AI_API_KEY: ${{ secrets.SECPIPE_AI_API_KEY }}
+          SECPIPE_AI_PROVIDER: ${{ inputs.provider }}
+          SECPIPE_AI_MODEL: ${{ inputs.model }}
+          SECPIPE_AI_BASE_URL: ${{ inputs.base_url }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work \
+            -e SECPIPE_AI_API_KEY -e SECPIPE_AI_PROVIDER -e SECPIPE_AI_MODEL -e SECPIPE_AI_BASE_URL \
+            "${{ inputs.image }}" autofix /work --headless --config "${{ inputs.config }}" || true
+      - name: Abrir PR com os fixes verificados (nunca auto-merge)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            branch="secpipe/autofix-${{ github.run_id }}"
+            git config user.name "secpipe-bot"; git config user.email "secpipe-bot@users.noreply.github.com"
+            git checkout -b "$branch"; git add -A
+            git commit -m "fix(security): auto-fix verificado pelo secpipe (headless)"
+            git push origin "$branch"
+            gh pr create --fill --head "$branch" --title "secpipe: fixes de seguranca verificados" \
+              --body "Fixes gerados pelo modo headless e APROVADOS pelo verify deterministico (gate + anti-supressao + testes). Revise antes de mergear."
+          else
+            echo "Nenhum fix verificado a propor."
+          fi

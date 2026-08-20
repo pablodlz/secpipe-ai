@@ -1,6 +1,10 @@
 """Composition Root — único lugar que conhece adapters concretos. Monta o motor a partir da config."""
 from __future__ import annotations
 
+import os
+
+from secpipe.adapters.ai import MultiProvider, NullProvider
+from secpipe.adapters.ai_providers import AnthropicProvider, OpenAICompatibleProvider
 from secpipe.adapters.bandit import BanditScanner
 from secpipe.adapters.checkov import CheckovScanner
 from secpipe.adapters.codemodder import CodemodderFixer
@@ -18,7 +22,7 @@ from secpipe.adapters.semgrep import SemgrepScanner
 from secpipe.adapters.trivy import TrivyScanner
 from secpipe.adapters.trivy_image import TrivyImageScanner
 from secpipe.application.orchestrator import Orchestrator
-from secpipe.application.ports import ScannerPort
+from secpipe.application.ports import AIProviderPort, ScannerPort
 from secpipe.domain import GatePolicy, Severity
 from secpipe.foundation.config import Config
 
@@ -81,3 +85,28 @@ def build(config: Config | None = None) -> Orchestrator:
 def build_fixer() -> CodemodderFixer:
     """Fixer determinístico (Codemodder). Ponto de extensão p/ outros fixers no futuro."""
     return CodemodderFixer()
+
+
+def build_ai_provider(config: Config | None = None) -> AIProviderPort:
+    """Monta o provedor de IA do modo HEADLESS a partir do AMBIENTE (única fonte de chave). Sem chave/
+    provedor => NullProvider (available False => autofix escala, fail-closed). ÚNICO ponto com adapters de IA."""
+    which = os.environ.get("SECPIPE_AI_PROVIDER", "").lower()
+    model = os.environ.get("SECPIPE_AI_MODEL", "")
+    base_url = os.environ.get("SECPIPE_AI_BASE_URL", "")
+    try:
+        timeout = int(os.environ.get("SECPIPE_AI_TIMEOUT", "60"))
+    except ValueError:
+        timeout = 60
+    providers: list[AIProviderPort] = []
+    if which in ("", "anthropic", "multi"):
+        anthropic = AnthropicProvider(model=model or "claude-sonnet-4-5", timeout=timeout)
+        if anthropic.available():
+            providers.append(anthropic)
+    if which in ("", "openai", "local", "multi") or base_url:
+        openai = OpenAICompatibleProvider(
+            base_url=base_url or "https://api.openai.com/v1", model=model or "gpt-4o-mini", timeout=timeout)
+        if openai.available():
+            providers.append(openai)
+    if not providers:
+        return NullProvider()
+    return providers[0] if len(providers) == 1 else MultiProvider(providers)

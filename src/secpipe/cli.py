@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import json
 import sys
 from collections.abc import Callable
 
@@ -14,6 +15,7 @@ from secpipe import __version__
 from secpipe.adapters.dast_zap import parse_zap_report
 from secpipe.adapters.epss_kev import enrich_report
 from secpipe.adapters.fix_memory import FixMemory
+from secpipe.adapters.patch import apply_patch, revert_patch
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
 from secpipe.adapters.reporters_human import (
     GithubAnnotationsReporter,
@@ -23,6 +25,7 @@ from secpipe.adapters.reporters_human import (
 )
 from secpipe.adapters.sarif import parse_sarif
 from secpipe.application.ports import ReporterPort
+from secpipe.application.use_cases.autofix import run_autofix
 from secpipe.application.use_cases.config_validate import validate_config
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.precommit import run as run_precommit
@@ -30,9 +33,15 @@ from secpipe.application.use_cases.threat_model import build_threat_model
 from secpipe.application.use_cases.threat_model import render_json as tm_render_json
 from secpipe.application.use_cases.threat_model import render_markdown as tm_render_md
 from secpipe.application.use_cases.verify import verify as run_verify
-from secpipe.domain import Report, ScanResult, ScanStatus
+from secpipe.domain import Report, ScanResult, ScanStatus, Severity
 from secpipe.domain.fix_memory import VerifiedFix
-from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build, build_fixer, build_policy
+from secpipe.foundation.composition_root import (
+    _SCANNER_REGISTRY,
+    build,
+    build_ai_provider,
+    build_fixer,
+    build_policy,
+)
 from secpipe.foundation.config import Config
 from secpipe.mcp_server import main as mcp_main
 
@@ -85,6 +94,29 @@ def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = Fal
     verdict = "PASS" if decision.passed else "FAIL"
     print(f"\nGATE: {verdict} - {decision.reason}", file=sys.stderr)
     return 0 if decision.passed else 1
+
+
+def _cmd_autofix(args: argparse.Namespace) -> int:
+    """Loop headless de auto-fix por IA (ÚNICA exceção com chave, opt-in). Fail-closed sem provedor."""
+    if not args.headless:
+        print("secpipe autofix: o modo headless e a UNICA excecao com chave (opt-in). Rode com --headless e "
+              "defina SECPIPE_AI_API_KEY no ambiente. Por padrao o secpipe e KEYLESS (a IA que ja opera corrige).",
+              file=sys.stderr)
+        return 2
+    cfg = Config.load(args.config)
+    outcome = run_autofix(
+        build(cfg), build_ai_provider(cfg), args.target,
+        apply_fn=apply_patch, revert_fn=revert_patch,
+        block_severity=Severity.parse(cfg.block_severity), test_command=cfg.test_command,
+        base_ref=args.base_ref, max_findings=args.max_findings, dry_run=args.dry_run)
+    payload = {
+        "results": [{"rule_id": r.rule_id, "status": r.status, "fingerprint": r.fingerprint}
+                    for r in outcome.results],
+        "counts": {s: outcome.count(s) for s in ("fixed", "rejected", "abstained", "escalated", "would_fix")},
+        "resolved": outcome.resolved,
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0 if outcome.resolved else 1
 
 
 def _cmd_badge(config_path: str | None, target: str, output: str | None) -> int:
@@ -292,6 +324,13 @@ def build_parser() -> argparse.ArgumentParser:
     bdg.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
     bdg.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     bdg.add_argument("--output", default=None, help="grava o SVG num arquivo (ex.: badge.svg)")
+    af = sub.add_parser("autofix", help="auto-fix headless por IA (UNICA excecao com chave, opt-in/default-off)")
+    af.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
+    af.add_argument("--headless", action="store_true", help="ativa o modo com chave (obrigatorio p/ rodar)")
+    af.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    af.add_argument("--base", dest="base_ref", default="HEAD", help="ref git base do diff (verify)")
+    af.add_argument("--max-findings", dest="max_findings", type=int, default=10, help="teto de fixes por run")
+    af.add_argument("--dry-run", dest="dry_run", action="store_true", help="pede o patch mas nao aplica")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -317,6 +356,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output)
     if args.command == "badge":
         return _cmd_badge(args.config, args.target, args.output)
+    if args.command == "autofix":
+        return _cmd_autofix(args)
     if args.command == "init":
         return _cmd_init(args)
     if args.command == "hook":
