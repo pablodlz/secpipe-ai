@@ -1,6 +1,7 @@
 """CLI machine-first do secpipe.
 
-Comandos: doctor · scan · fix · verify · threat-model · init · hook · mcp · remember/recall · version.
+Comandos: doctor · scan · fix · verify · threat-model · dast-import · config-validate
+· init · hook · mcp · remember/recall · version.
 Saída pensada para a IA consumir (JSON em `scan`). Exit code de `scan`/`verify` reflete o gate."""
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from secpipe import __version__
 from secpipe.adapters.dast_zap import parse_zap_report
 from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
+from secpipe.application.use_cases.config_validate import validate_config
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.precommit import run as run_precommit
 from secpipe.application.use_cases.threat_model import build_threat_model
@@ -127,6 +129,20 @@ def _cmd_threat_model(config_path: str | None, target: str, fmt: str) -> int:
     return 0
 
 
+def _cmd_config_validate(config_path: str | None) -> int:
+    """Valida o .secpipe.yml (chaves/valores/scanners) — pega misconfig que enfraqueceria o gate."""
+    path = config_path or ".secpipe.yml"
+    known = frozenset(_SCANNER_REGISTRY) | {"dast"}
+    errors = validate_config(path, known)
+    if not errors:
+        print(f"secpipe config-validate: OK ({path})")
+        return 0
+    print(f"secpipe config-validate: {len(errors)} problema(s) em {path}:", file=sys.stderr)
+    for err in errors:
+        print("  -", err, file=sys.stderr)
+    return 1
+
+
 def _cmd_dast_import(config_path: str | None, report_path: str) -> int:
     """Importa um relatório JSON do ZAP (gerado por um step no CI), normaliza e aplica o MESMO gate.
     Ponte do fluxo de CI: o ZAP roda como container à parte -> este comando junta ao contrato do secpipe."""
@@ -190,6 +206,8 @@ def build_parser() -> argparse.ArgumentParser:
     di = sub.add_parser("dast-import", help="importa relatorio JSON do ZAP (DAST no CI), normaliza e aplica o gate")
     di.add_argument("report", help="caminho do report.json gerado pelo ZAP baseline")
     di.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    cv = sub.add_parser("config-validate", help="valida o .secpipe.yml (pega chave/valor/scanner invalido)")
+    cv.add_argument("--config", default=None, help="caminho do .secpipe.yml (default: .secpipe.yml)")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -231,6 +249,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_threat_model(args.config, args.target, args.fmt)
     if args.command == "dast-import":
         return _cmd_dast_import(args.config, args.report)
+    if args.command == "config-validate":
+        return _cmd_config_validate(args.config)
     if args.command == "version":
         print(__version__)
         return 0

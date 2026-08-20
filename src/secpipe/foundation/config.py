@@ -27,6 +27,8 @@ class Config:
     languages: tuple[str, ...] = field(default_factory=tuple)  # vazio = auto-detect (Fase 1)
     test_command: tuple[str, ...] = field(default_factory=tuple)  # ex.: ["pytest","-q"] — usado no `verify`
     dast_target: str = ""  # URL alvo do DAST (ZAP baseline). Vazio = DAST desligado (estático plug-and-play).
+    min_scanners: int = 1  # cobertura mínima: <1 => gate fail-closed (evita falso-verde de 0 scanners)
+    require_scanners: tuple[str, ...] = field(default_factory=tuple)  # scanners que DEVEM ter rodado (opt-in)
 
     @staticmethod
     def default() -> Config:
@@ -40,12 +42,16 @@ class Config:
         languages = d.get("languages")
         block = d.get("block_severity")
         test_cmd = d.get("test_command")
+        require = d.get("require")
+        mins = d.get("min_scanners")
         return Config(
             scanners=tuple(scanners) if isinstance(scanners, list) else _DEFAULT_SCANNERS,
             block_severity=str(block) if isinstance(block, str) else _DEFAULT_BLOCK_SEVERITY,
             languages=tuple(languages) if isinstance(languages, list) else (),
             test_command=tuple(str(x) for x in test_cmd) if isinstance(test_cmd, list) else (),
             dast_target=_read_dast_target(d),
+            min_scanners=mins if isinstance(mins, int) and not isinstance(mins, bool) and mins >= 0 else 1,
+            require_scanners=tuple(str(x) for x in require) if isinstance(require, list) else (),
         )
 
     @staticmethod
