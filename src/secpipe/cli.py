@@ -24,6 +24,7 @@ from secpipe.adapters.reporters_human import (
     render_badge,
 )
 from secpipe.adapters.sarif import parse_sarif
+from secpipe.adapters.sbom import emit_sbom
 from secpipe.application.ports import ReporterPort
 from secpipe.application.use_cases.autofix import run_autofix
 from secpipe.application.use_cases.config_validate import validate_config
@@ -137,6 +138,17 @@ def _cmd_report(config_path: str | None, target: str, defectdojo: bool) -> int:
             return 2
     print(f"\nGATE: {'PASS' if decision.passed else 'FAIL'} - {decision.reason}", file=sys.stderr)
     return 0 if decision.passed else 1
+
+
+def _cmd_sbom(target: str, fmt: str, output: str | None) -> int:
+    """Emite o SBOM (CycloneDX/SPDX) do alvo via syft/trivy. Não passa pelo gate — é utilitário."""
+    result = emit_sbom(target, fmt)
+    if not result.ran:
+        print(f"secpipe sbom: nao gerado — {result.detail}", file=sys.stderr)
+        return 2
+    _write_or_print(result.document, output)
+    print(f"\nSBOM {result.fmt} via {result.tool}", file=sys.stderr)
+    return 0
 
 
 def _cmd_badge(config_path: str | None, target: str, output: str | None) -> int:
@@ -340,6 +352,11 @@ def build_parser() -> argparse.ArgumentParser:
     img = sub.add_parser("image", help="escaneia uma imagem de container (trivy image) e aplica o gate")
     img.add_argument("ref", help="ref da imagem ou tarball (ex.: ghcr.io/org/app:tag)")
     img.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    sb = sub.add_parser("sbom", help="emite o SBOM (CycloneDX/SPDX) do alvo via syft/trivy")
+    sb.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
+    sb.add_argument("--format", dest="fmt", choices=["cyclonedx", "spdx"], default="cyclonedx",
+                    help="formato do SBOM (default: cyclonedx)")
+    sb.add_argument("--output", default=None, help="grava o SBOM num arquivo")
     bdg = sub.add_parser("badge", help="gera um badge SVG (security: PASS / N blocking) a partir de um scan")
     bdg.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
     bdg.add_argument("--config", default=None, help="caminho do .secpipe.yml")
@@ -378,6 +395,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_doctor()
     if args.command == "scan":
         return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output)
+    if args.command == "sbom":
+        return _cmd_sbom(args.target, args.fmt, args.output)
     if args.command == "badge":
         return _cmd_badge(args.config, args.target, args.output)
     if args.command == "report":
