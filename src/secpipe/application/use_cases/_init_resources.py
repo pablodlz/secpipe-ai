@@ -11,6 +11,12 @@ SECPIPE_YML = """# .secpipe.yml — gerado por `secpipe init`. OPCIONAL (zero-co
 scanners: [__SCANNERS__]
 block_severity: HIGH
 languages: [__LANGUAGES__]
+
+# DAST (OWASP ZAP baseline) — OPT-IN, roda contra um app JÁ NO AR (precisa de docker ou zap-baseline.py).
+# 1) adicione "dast" à lista de scanners acima; 2) defina a URL alvo abaixo. Sem URL, o DAST fica desligado.
+# dast:
+#   target_url: "http://localhost:8080"
+# No CI, prefira o workflow dedicado: uses: pablodlz/secpipe-ai/.github/workflows/secpipe-dast.reusable.yml@v1
 """
 
 WORKFLOW_YML = """# Segurança via secpipe (Modo A — referenciado). Recebe updates ao bumpar a tag/SHA.

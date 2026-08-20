@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from secpipe.adapters.bandit import BanditScanner
 from secpipe.adapters.codemodder import CodemodderFixer
+from secpipe.adapters.dast_zap import ZapDastScanner
 from secpipe.adapters.gitleaks import GitleaksScanner
 from secpipe.adapters.pip_audit import PipAuditScanner
 from secpipe.adapters.semgrep import SemgrepScanner
@@ -21,12 +22,16 @@ _SCANNER_REGISTRY: dict[str, type] = {
     "trivy": TrivyScanner,
     "bandit": BanditScanner,
     "pip-audit": PipAuditScanner,
+    "dast": ZapDastScanner,   # DAST (ZAP baseline) — opt-in; precisa de dast_target na config
 }
 
 
 def build_scanners(config: Config) -> tuple[ScannerPort, ...]:
     scanners: list[ScannerPort] = []
     for name in config.scanners:
+        if name == "dast":   # DAST recebe a URL alvo da config (demais scanners são zero-arg)
+            scanners.append(ZapDastScanner(config.dast_target))
+            continue
         factory = _SCANNER_REGISTRY.get(name)
         if factory is not None:
             scanners.append(factory())

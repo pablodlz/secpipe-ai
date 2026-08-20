@@ -8,6 +8,7 @@ import argparse
 import sys
 
 from secpipe import __version__
+from secpipe.adapters.dast_zap import parse_zap_report
 from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
 from secpipe.application.use_cases.init import init as run_init
@@ -16,8 +17,9 @@ from secpipe.application.use_cases.threat_model import build_threat_model
 from secpipe.application.use_cases.threat_model import render_json as tm_render_json
 from secpipe.application.use_cases.threat_model import render_markdown as tm_render_md
 from secpipe.application.use_cases.verify import verify as run_verify
+from secpipe.domain import Report, ScanResult, ScanStatus
 from secpipe.domain.fix_memory import VerifiedFix
-from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build, build_fixer
+from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build, build_fixer, build_policy
 from secpipe.foundation.config import Config
 from secpipe.mcp_server import main as mcp_main
 
@@ -125,6 +127,30 @@ def _cmd_threat_model(config_path: str | None, target: str, fmt: str) -> int:
     return 0
 
 
+def _cmd_dast_import(config_path: str | None, report_path: str) -> int:
+    """Importa um relatório JSON do ZAP (gerado por um step no CI), normaliza e aplica o MESMO gate.
+    Ponte do fluxo de CI: o ZAP roda como container à parte -> este comando junta ao contrato do secpipe."""
+    cfg = Config.load(config_path)
+    try:
+        with open(report_path, encoding="utf-8", errors="replace") as fh:
+            raw = fh.read()
+    except OSError as exc:
+        print(f"secpipe dast-import: nao consegui ler {report_path}: {exc}", file=sys.stderr)
+        return 2
+    try:
+        findings = parse_zap_report(raw)
+    except (ValueError, TypeError) as exc:
+        result = ScanResult("dast", ScanStatus.ERROR, (), f"relatorio ZAP invalido: {str(exc)[:200]}")
+    else:
+        result = ScanResult("dast", ScanStatus.OK, tuple(findings), "")
+    report = Report((result,))
+    decision = build_policy(cfg).evaluate(report)
+    print(JsonReporter().render(report))
+    verdict = "PASS" if decision.passed else "FAIL"
+    print(f"\nGATE (DAST): {verdict} - {decision.reason}", file=sys.stderr)
+    return 0 if decision.passed else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="secpipe", description="Motor de seguranca operado por IA.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -161,6 +187,9 @@ def build_parser() -> argparse.ArgumentParser:
     tm.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     tm.add_argument("--format", dest="fmt", choices=["md", "json"], default="md",
                     help="md (agente/humano) ou json (maquina). default: md")
+    di = sub.add_parser("dast-import", help="importa relatorio JSON do ZAP (DAST no CI), normaliza e aplica o gate")
+    di.add_argument("report", help="caminho do report.json gerado pelo ZAP baseline")
+    di.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -200,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_verify(args.config, args.target, args.base_ref)
     if args.command == "threat-model":
         return _cmd_threat_model(args.config, args.target, args.fmt)
+    if args.command == "dast-import":
+        return _cmd_dast_import(args.config, args.report)
     if args.command == "version":
         print(__version__)
         return 0

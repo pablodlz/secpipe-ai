@@ -1,0 +1,33 @@
+# DAST opt-in (OWASP ZAP baseline) — o consumidor chama contra um app JÁ RODANDO (deploy/preview):
+#   jobs:
+#     dast:
+#       uses: pablodlz/secpipe-ai/.github/workflows/secpipe-dast.reusable.yml@v1
+#       with: { target: "https://staging.meu-app.com" }
+# O ZAP roda como container (o runner do CI tem docker); o secpipe NORMALIZA o relatório e aplica o MESMO gate.
+name: secpipe-dast-reusable
+on:
+  workflow_call:
+    inputs:
+      target:    { type: string, required: true }              # URL do app no ar (obrigatório p/ DAST)
+      config:    { type: string, default: ".secpipe.yml" }
+      # Imagem do secpipe PINADA POR DIGEST (repinada a cada release; precisa conter `dast-import`).
+      image:     { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:04834ff1cbfda009dd7113204c591e998824f20d6d6efc3a76efe2c59c505ce8" }
+      zap_image: { type: string, default: "ghcr.io/zaproxy/zaproxy:stable" }
+permissions:
+  contents: read
+jobs:
+  dast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+        with: { egress-policy: audit }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: ZAP baseline (DAST) contra o alvo
+        run: |
+          mkdir -p zap-out
+          docker run --rm -v "${{ github.workspace }}/zap-out:/zap/wrk:rw" \
+            "${{ inputs.zap_image }}" zap-baseline.py -t "${{ inputs.target }}" -J report.json -I || true
+      - name: secpipe — normaliza o relatorio e aplica o gate
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work \
+            "${{ inputs.image }}" dast-import "zap-out/report.json" --config "${{ inputs.config }}"

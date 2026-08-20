@@ -27,11 +27,12 @@ class ToolRun:
         return not self.missing and not self.timed_out
 
 
-def run_tool(binary: str, args: list[str], *, timeout: int = 300) -> ToolRun:
+def run_tool(binary: str, args: list[str], *, timeout: int = 300, cwd: str | None = None) -> ToolRun:
     """Executa `binary args...` de forma segura e captura a saída.
 
     NUNCA usa shell; resolve o binário para caminho absoluto; argumentos em lista. Um returncode != 0
-    NÃO é necessariamente erro (muitos scanners saem 1 quando ACHAM algo) — quem interpreta é o adapter."""
+    NÃO é necessariamente erro (muitos scanners saem 1 quando ACHAM algo) — quem interpreta é o adapter.
+    `cwd` opcional: diretório de trabalho (ex.: onde o ZAP grava o relatório)."""
     resolved = shutil.which(binary)
     if resolved is None:
         return ToolRun(missing=True, timed_out=False, returncode=127, stdout="", stderr="")
@@ -47,6 +48,7 @@ def run_tool(binary: str, args: list[str], *, timeout: int = 300) -> ToolRun:
             timeout=timeout,
             shell=False,
             check=False,
+            cwd=cwd,
         )
     except subprocess.TimeoutExpired:
         return ToolRun(missing=False, timed_out=True, returncode=124, stdout="", stderr="timeout")
