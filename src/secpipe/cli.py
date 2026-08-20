@@ -8,13 +8,21 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import sys
+from collections.abc import Callable
 
 from secpipe import __version__
 from secpipe.adapters.dast_zap import parse_zap_report
 from secpipe.adapters.epss_kev import enrich_report
 from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
+from secpipe.adapters.reporters_human import (
+    GithubAnnotationsReporter,
+    HtmlReporter,
+    MarkdownReporter,
+    render_badge,
+)
 from secpipe.adapters.sarif import parse_sarif
+from secpipe.application.ports import ReporterPort
 from secpipe.application.use_cases.config_validate import validate_config
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.precommit import run as run_precommit
@@ -47,7 +55,23 @@ NO_SCANNER_WARN = (
 )
 
 
-def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = False) -> int:
+_REPORTERS: dict[str, Callable[[], ReporterPort]] = {
+    "json": JsonReporter, "sarif": SarifReporter, "html": HtmlReporter,
+    "md": MarkdownReporter, "github": GithubAnnotationsReporter,
+}
+
+
+def _write_or_print(text: str, output: str | None) -> None:
+    if output:
+        with open(output, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        print(f"secpipe: escrito em {output}", file=sys.stderr)
+    else:
+        print(text)
+
+
+def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = False,
+              output: str | None = None) -> int:
     cfg = Config.load(config_path)
     report, decision = build(cfg).run(target)
     do_epss, do_kev = enrich or cfg.enrich_epss, enrich or cfg.enrich_kev
@@ -55,13 +79,20 @@ def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = Fal
         # EPSS/KEV: anota (fail-open) e re-avalia o gate (KEV pode bloquear).
         report = enrich_report(report, cfg.cache_dir, epss=do_epss, kev=do_kev)
         decision = build_policy(cfg).evaluate(report)
-    reporter = SarifReporter() if fmt == "sarif" else JsonReporter()
-    print(reporter.render(report))
+    _write_or_print(_REPORTERS[fmt]().render(report), output)
     if report.ran == 0:
         print(f"\n{NO_SCANNER_WARN}", file=sys.stderr)
     verdict = "PASS" if decision.passed else "FAIL"
     print(f"\nGATE: {verdict} - {decision.reason}", file=sys.stderr)
     return 0 if decision.passed else 1
+
+
+def _cmd_badge(config_path: str | None, target: str, output: str | None) -> int:
+    """Gera um badge SVG (security: PASS / N blocking) a partir de um scan. Sem rede."""
+    cfg = Config.load(config_path)
+    report, _ = build(cfg).run(target)
+    _write_or_print(render_badge(report), output)
+    return 0
 
 
 def _cmd_init(args: argparse.Namespace) -> int:
@@ -213,10 +244,11 @@ def build_parser() -> argparse.ArgumentParser:
     scan = sub.add_parser("scan", help="roda os scanners, normaliza e aplica o gate")
     scan.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
     scan.add_argument("--config", default=None, help="caminho do .secpipe.yml (default: auto)")
-    scan.add_argument("--format", dest="fmt", choices=["json", "sarif"], default="json",
-                      help="formato de saida (default: json para a IA; sarif para code scanning)")
+    scan.add_argument("--format", dest="fmt", choices=["json", "sarif", "html", "md", "github"], default="json",
+                      help="saida: json (IA) · sarif (code scanning) · html/md (humano/PR) · github (anotacoes)")
     scan.add_argument("--enrich", action="store_true",
                       help="anexa EPSS + CISA KEV aos achados com CVE (usa rede; KEV bloqueia)")
+    scan.add_argument("--output", default=None, help="grava a saida num arquivo (em vez do stdout)")
     init = sub.add_parser("init", help="adota o secpipe no projeto (config + AGENTS.md + hook + workflow)")
     init.add_argument("target", nargs="?", default=".", help="diretorio do projeto (default: .)")
     init.add_argument("--force", action="store_true", help="sobrescreve arquivos existentes")
@@ -256,6 +288,10 @@ def build_parser() -> argparse.ArgumentParser:
     img = sub.add_parser("image", help="escaneia uma imagem de container (trivy image) e aplica o gate")
     img.add_argument("ref", help="ref da imagem ou tarball (ex.: ghcr.io/org/app:tag)")
     img.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    bdg = sub.add_parser("badge", help="gera um badge SVG (security: PASS / N blocking) a partir de um scan")
+    bdg.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
+    bdg.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    bdg.add_argument("--output", default=None, help="grava o SVG num arquivo (ex.: badge.svg)")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
@@ -278,7 +314,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return _cmd_doctor()
     if args.command == "scan":
-        return _cmd_scan(args.config, args.target, args.fmt, args.enrich)
+        return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output)
+    if args.command == "badge":
+        return _cmd_badge(args.config, args.target, args.output)
     if args.command == "init":
         return _cmd_init(args)
     if args.command == "hook":
