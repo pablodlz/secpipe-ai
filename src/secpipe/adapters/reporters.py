@@ -52,6 +52,7 @@ class JsonReporter:
                     "escalate": escalates(f.cwe, f.severity),
                     **({"epss": f.epss} if f.epss is not None else {}),
                     **({"kev": True} if f.kev else {}),
+                    **({"reachable": f.reachable} if f.reachable is not None else {}),
                     **({"correlated": True} if f.cwe in correlated_cwes else {}),
                     "triage": triage(f),   # contexto p/ priorizar (NUNCA muda o gate)
                 }

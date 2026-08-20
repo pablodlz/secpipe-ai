@@ -41,6 +41,7 @@ class Finding:
     cwe: str = ""         # ex.: "CWE-79"
     epss: float | None = None  # prob. de exploração (EPSS, FIRST.org) quando enriquecido; None = sem dado
     kev: bool = False          # está no CISA KEV (exploração ativa conhecida)? enrichment só ELEVA, nunca rebaixa
+    reachable: bool | None = None  # dep vulnerável é IMPORTADA? None = não avaliado. Só ANOTA (nunca relaxa o gate)
 
     @property
     def fingerprint(self) -> str:

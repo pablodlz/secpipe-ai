@@ -127,6 +127,7 @@ class Config:
     enrich_kev: bool = False   # anexar flag CISA KEV aos achados com CVE (opt-in: usa rede)
     kev_blocks: bool = True    # achado no KEV bloqueia o gate (só morde quando enrich_kev está ligado)
     cache_dir: str = ".secpipe/cache"  # cache de EPSS/KEV (TTL) p/ modo offline
+    reachability: bool = False  # anota se a dep vulnerável (SCA) é importada (só anota; opt-in offline)
     internal_prefixes: tuple[str, ...] = field(default_factory=tuple)  # p/ malicious-deps (dependency-confusion)
     defectdojo: DefectDojoConfig | None = None  # export opt-in p/ DefectDojo (token via env). None = off.
     policy_rules: tuple[PolicyRule, ...] = field(default_factory=tuple)  # policy-as-code (só ELEVA o bloqueio)
@@ -146,6 +147,7 @@ class Config:
         require = d.get("require")
         mins = d.get("min_scanners")
         kev_blocks = d.get("kev_blocks")
+        reach = d.get("reachability")
         prefixes = d.get("internal_prefixes")
         return Config(
             scanners=tuple(scanners) if isinstance(scanners, list) else _DEFAULT_SCANNERS,
@@ -163,6 +165,7 @@ class Config:
             enrich_kev=_read_enrich(d, "kev"),
             kev_blocks=kev_blocks if isinstance(kev_blocks, bool) else True,
             cache_dir=str(d.get("cache_dir")) if isinstance(d.get("cache_dir"), str) else ".secpipe/cache",
+            reachability=reach if isinstance(reach, bool) else False,
             internal_prefixes=tuple(str(x) for x in prefixes) if isinstance(prefixes, list) else (),
             defectdojo=_read_defectdojo(d),
             policy_rules=_read_policy_rules(d),
