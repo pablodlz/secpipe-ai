@@ -29,6 +29,7 @@ from secpipe.application.ports import ReporterPort
 from secpipe.application.use_cases.autofix import run_autofix
 from secpipe.application.use_cases.config_validate import validate_config
 from secpipe.application.use_cases.init import init as run_init
+from secpipe.application.use_cases.policy_guard import LOCK_FILE, check_lock, write_lock
 from secpipe.application.use_cases.precommit import run as run_precommit
 from secpipe.application.use_cases.threat_model import build_threat_model
 from secpipe.application.use_cases.threat_model import render_json as tm_render_json
@@ -36,6 +37,7 @@ from secpipe.application.use_cases.threat_model import render_markdown as tm_ren
 from secpipe.application.use_cases.verify import verify as run_verify
 from secpipe.domain import Report, ScanResult, ScanStatus, Severity
 from secpipe.domain.fix_memory import VerifiedFix
+from secpipe.domain.policy_lock import make_snapshot
 from secpipe.foundation.composition_root import (
     _SCANNER_REGISTRY,
     build,
@@ -263,6 +265,29 @@ def _cmd_import(config_path: str | None, sarif_path: str, tool: str) -> int:
     return 0 if decision.passed else 1
 
 
+def _policy_snapshot(cfg: Config) -> dict[str, object]:
+    return make_snapshot(cfg.block_severity, cfg.scanners, cfg.require_scanners, cfg.min_scanners, cfg.kev_blocks)
+
+
+def _cmd_policy_lock(config_path: str | None) -> int:
+    """Grava .secpipe.lock com a política atual (proteja com CODEOWNERS: mudar a régua exige review)."""
+    write_lock(LOCK_FILE, _policy_snapshot(Config.load(config_path)))
+    print(f"secpipe policy-lock: gravado {LOCK_FILE}. Faca commit e proteja via CODEOWNERS.")
+    return 0
+
+
+def _cmd_policy_check(config_path: str | None) -> int:
+    """Reprova se a política atual ENFRAQUECEU vs. o lock (impede a IA baixar a régua p/ passar)."""
+    ok, problems = check_lock(LOCK_FILE, _policy_snapshot(Config.load(config_path)))
+    if ok:
+        print("secpipe policy-check: OK (a politica nao enfraqueceu)")
+        return 0
+    print("secpipe policy-check: POLITICA ENFRAQUECIDA vs .secpipe.lock:", file=sys.stderr)
+    for problem in problems:
+        print("  -", problem, file=sys.stderr)
+    return 1
+
+
 def _cmd_config_validate(config_path: str | None) -> int:
     """Valida o .secpipe.yml (chaves/valores/scanners) — pega misconfig que enfraqueceria o gate."""
     path = config_path or ".secpipe.yml"
@@ -345,6 +370,10 @@ def build_parser() -> argparse.ArgumentParser:
     di.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     cv = sub.add_parser("config-validate", help="valida o .secpipe.yml (pega chave/valor/scanner invalido)")
     cv.add_argument("--config", default=None, help="caminho do .secpipe.yml (default: .secpipe.yml)")
+    pl = sub.add_parser("policy-lock", help="grava .secpipe.lock com a politica atual (anti-adulteracao)")
+    pl.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    pc = sub.add_parser("policy-check", help="reprova se a politica enfraqueceu vs .secpipe.lock")
+    pc.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     imp = sub.add_parser("import", help="importa um SARIF externo (CodeQL/Checkov/...), normaliza e aplica o gate")
     imp.add_argument("sarif", help="caminho do arquivo .sarif")
     imp.add_argument("--tool", default="external", help="nome do tool de origem (default: external)")
@@ -423,6 +452,10 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_dast_import(args.config, args.report)
     if args.command == "config-validate":
         return _cmd_config_validate(args.config)
+    if args.command == "policy-lock":
+        return _cmd_policy_lock(args.config)
+    if args.command == "policy-check":
+        return _cmd_policy_check(args.config)
     if args.command == "import":
         return _cmd_import(args.config, args.sarif, args.tool)
     if args.command == "image":
