@@ -8,8 +8,10 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import os
 import sys
 from collections.abc import Callable
+from datetime import date
 
 from secpipe import __version__
 from secpipe.adapters.dast_zap import parse_zap_report
@@ -25,6 +27,7 @@ from secpipe.adapters.reporters_human import (
 )
 from secpipe.adapters.sarif import parse_sarif
 from secpipe.adapters.sbom import emit_sbom
+from secpipe.adapters.waiver_store import WAIVERS_FILE, load_waivers
 from secpipe.application.ports import ReporterPort
 from secpipe.application.use_cases.autofix import run_autofix
 from secpipe.application.use_cases.config_validate import validate_config
@@ -36,10 +39,11 @@ from secpipe.application.use_cases.threat_model import build_threat_model
 from secpipe.application.use_cases.threat_model import render_json as tm_render_json
 from secpipe.application.use_cases.threat_model import render_markdown as tm_render_md
 from secpipe.application.use_cases.verify import verify as run_verify
-from secpipe.domain import Report, ScanResult, ScanStatus, Severity
+from secpipe.domain import Finding, Report, ScanResult, ScanStatus, Severity
 from secpipe.domain.diffscope import is_in_diff
 from secpipe.domain.fix_memory import VerifiedFix
 from secpipe.domain.policy_lock import make_snapshot
+from secpipe.domain.waivers import partition as waiver_partition
 from secpipe.foundation.composition_root import (
     _SCANNER_REGISTRY,
     build,
@@ -93,13 +97,27 @@ def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = Fal
     if do_epss or do_kev:
         # EPSS/KEV: anota (fail-open) e re-avalia o gate (KEV pode bloquear).
         report = enrich_report(report, cfg.cache_dir, epss=do_epss, kev=do_kev)
-    if do_epss or do_kev or diff_base:
+    waived: list[Finding] = []
+    waivers = load_waivers(os.path.join(target, WAIVERS_FILE))
+    if waivers:
+        _remaining, waived = waiver_partition(list(report.findings), waivers, date.today())
+        if waived:
+            drop = {f.fingerprint for f in waived}
+            report = Report(tuple(
+                dataclasses.replace(r, findings=tuple(f for f in r.findings if f.fingerprint not in drop))
+                for r in report.results))
+    if do_epss or do_kev or diff_base or waived:
         only = None
         if diff_base:  # diff-scope: bloqueia só o código NOVO do PR (+ sempre-bloqueados)
             added = get_added_lines(target, diff_base)
             only = frozenset(f.fingerprint for f in report.findings if is_in_diff(f, added))
         decision = build_policy(cfg).evaluate(report, only=only)
     _write_or_print(_REPORTERS[fmt]().render(report), output)
+    if waived:  # transparência total: waivers são SEMPRE reportados
+        print(f"\nWAIVERS: {len(waived)} achado(s) isento(s) (ativos, reviewados; nunca CRITICAL/segredo/KEV):",
+              file=sys.stderr)
+        for f in waived[:10]:
+            print(f"  - waived: {f.rule_id} {f.file}:{f.line}", file=sys.stderr)
     if report.ran == 0:
         print(f"\n{NO_SCANNER_WARN}", file=sys.stderr)
     verdict = "PASS" if decision.passed else "FAIL"
@@ -157,6 +175,22 @@ def _cmd_sbom(target: str, fmt: str, output: str | None) -> int:
         return 2
     _write_or_print(result.document, output)
     print(f"\nSBOM {result.fmt} via {result.tool}", file=sys.stderr)
+    return 0
+
+
+def _cmd_waiver_list(target: str) -> int:
+    """Lista os waivers (ativos/expirados). Criar waiver é via PR reviewado (CODEOWNERS), não por comando."""
+    path = os.path.join(target, WAIVERS_FILE)
+    waivers = load_waivers(path)
+    if not waivers:
+        print(f"secpipe waiver-list: nenhum waiver em {path}")
+        return 0
+    today = date.today()
+    print(f"secpipe waiver-list: {len(waivers)} waiver(s) em {path}:")
+    for w in waivers:
+        status = "ATIVO" if w.is_active(today) else "EXPIRADO/INVALIDO"
+        print(f"  - [{status}] {w.fingerprint[:12]} expira={w.expires or '?'} owner={w.owner or '?'} "
+              f"ticket={w.ticket or '?'}")
     return 0
 
 
@@ -395,6 +429,8 @@ def build_parser() -> argparse.ArgumentParser:
     sb.add_argument("--format", dest="fmt", choices=["cyclonedx", "spdx"], default="cyclonedx",
                     help="formato do SBOM (default: cyclonedx)")
     sb.add_argument("--output", default=None, help="grava o SBOM num arquivo")
+    wl = sub.add_parser("waiver-list", help="lista os waivers (.secpipe/waivers.yml) — ativos/expirados")
+    wl.add_argument("target", nargs="?", default=".", help="diretorio do projeto (default: .)")
     bdg = sub.add_parser("badge", help="gera um badge SVG (security: PASS / N blocking) a partir de um scan")
     bdg.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
     bdg.add_argument("--config", default=None, help="caminho do .secpipe.yml")
@@ -435,6 +471,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output, args.diff_base)
     if args.command == "sbom":
         return _cmd_sbom(args.target, args.fmt, args.output)
+    if args.command == "waiver-list":
+        return _cmd_waiver_list(args.target)
     if args.command == "badge":
         return _cmd_badge(args.config, args.target, args.output)
     if args.command == "report":
