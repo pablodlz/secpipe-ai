@@ -13,6 +13,41 @@ _DEFAULT_SCANNERS: tuple[str, ...] = ("gitleaks", "semgrep", "trivy")
 _DEFAULT_BLOCK_SEVERITY = "HIGH"
 
 
+@dataclass(frozen=True, slots=True)
+class DefectDojoConfig:
+    """Config do export DefectDojo. TOKEN nunca aqui — só via env DEFECTDOJO_TOKEN (anti-segredo-em-config)."""
+    url: str = ""
+    product_name: str = "secpipe"
+    engagement_name: str = "ci"
+    scan_type: str = "SARIF"
+    minimum_severity: str = "Info"
+    active: bool = True
+    verified: bool = False
+    reimport: bool = False
+    auto_create_context: bool = True
+    ca_bundle: str = ""
+    timeout: int = 60
+
+
+def _read_defectdojo(d: dict[str, object]) -> DefectDojoConfig | None:
+    dd = d.get("defectdojo")
+    if not isinstance(dd, dict):
+        return None
+    def _s(key: str, default: str) -> str:
+        val = dd.get(key)
+        return str(val) if isinstance(val, str) else default
+    def _b(key: str, default: bool) -> bool:
+        val = dd.get(key)
+        return val if isinstance(val, bool) else default
+    return DefectDojoConfig(
+        url=_s("url", ""), product_name=_s("product_name", "secpipe"),
+        engagement_name=_s("engagement_name", "ci"), scan_type=_s("scan_type", "SARIF"),
+        minimum_severity=_s("minimum_severity", "Info"), active=_b("active", True),
+        verified=_b("verified", False), reimport=_b("reimport", False),
+        auto_create_context=_b("auto_create_context", True), ca_bundle=_s("ca_bundle", ""),
+    )
+
+
 def _read_dast_target(d: dict[str, object]) -> str:
     """Aceita `dast: {target_url: ...}` (preferido) ou `dast_target: ...` (atalho). Vazio = DAST off."""
     dast = d.get("dast")
@@ -76,6 +111,7 @@ class Config:
     kev_blocks: bool = True    # achado no KEV bloqueia o gate (só morde quando enrich_kev está ligado)
     cache_dir: str = ".secpipe/cache"  # cache de EPSS/KEV (TTL) p/ modo offline
     internal_prefixes: tuple[str, ...] = field(default_factory=tuple)  # p/ malicious-deps (dependency-confusion)
+    defectdojo: DefectDojoConfig | None = None  # export opt-in p/ DefectDojo (token via env). None = off.
 
     @staticmethod
     def default() -> Config:
@@ -110,6 +146,7 @@ class Config:
             kev_blocks=kev_blocks if isinstance(kev_blocks, bool) else True,
             cache_dir=str(d.get("cache_dir")) if isinstance(d.get("cache_dir"), str) else ".secpipe/cache",
             internal_prefixes=tuple(str(x) for x in prefixes) if isinstance(prefixes, list) else (),
+            defectdojo=_read_defectdojo(d),
         )
 
     @staticmethod

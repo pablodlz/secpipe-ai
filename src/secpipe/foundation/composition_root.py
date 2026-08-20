@@ -9,6 +9,7 @@ from secpipe.adapters.bandit import BanditScanner
 from secpipe.adapters.checkov import CheckovScanner
 from secpipe.adapters.codemodder import CodemodderFixer
 from secpipe.adapters.dast_zap import ZapDastScanner
+from secpipe.adapters.defectdojo import DefectDojoExporter
 from secpipe.adapters.gitleaks import GitleaksScanner
 from secpipe.adapters.gitleaks_history import GitleaksHistoryScanner
 from secpipe.adapters.gosec import GosecScanner
@@ -24,7 +25,7 @@ from secpipe.adapters.trivy_image import TrivyImageScanner
 from secpipe.application.orchestrator import Orchestrator
 from secpipe.application.ports import AIProviderPort, ScannerPort
 from secpipe.domain import GatePolicy, Severity
-from secpipe.foundation.config import Config
+from secpipe.foundation.config import Config, DefectDojoConfig
 
 # Registro nome -> fábrica de adapter. Novo scanner entra aqui (ponto de extensão).
 # multi-linguagem: gitleaks/semgrep/trivy. Específicos de Python: bandit/pip-audit (opt-in via config;
@@ -85,6 +86,11 @@ def build(config: Config | None = None) -> Orchestrator:
 def build_fixer() -> CodemodderFixer:
     """Fixer determinístico (Codemodder). Ponto de extensão p/ outros fixers no futuro."""
     return CodemodderFixer()
+
+
+def build_exporter(config: Config) -> DefectDojoExporter:
+    """Exportador DefectDojo (opt-in). Único ponto que conhece o adapter concreto de export."""
+    return DefectDojoExporter(config.defectdojo or DefectDojoConfig())
 
 
 def build_ai_provider(config: Config | None = None) -> AIProviderPort:

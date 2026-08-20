@@ -1,0 +1,31 @@
+# Export para DefectDojo (OSS) — OPT-IN, default-off. Token via secret do consumidor (nunca versionado):
+#   jobs:
+#     dd:
+#       uses: pablodlz/secpipe-ai/.github/workflows/secpipe-defectdojo.reusable.yml@v1
+#       secrets: { DEFECTDOJO_URL: ${{ secrets.DEFECTDOJO_URL }}, DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }} }
+name: secpipe-defectdojo-reusable
+on:
+  workflow_call:
+    inputs:
+      config: { type: string, default: ".secpipe.yml" }
+      image:  { type: string, default: "ghcr.io/pablodlz/secpipe-ai@sha256:08be58113633adb5a13ece34e6fee2180755a2446120bc9446d210a26df9b34e" }
+    secrets:
+      DEFECTDOJO_URL:   { required: true }
+      DEFECTDOJO_TOKEN: { required: true }
+permissions:
+  contents: read
+jobs:
+  defectdojo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+        with: { egress-policy: audit }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: secpipe report --defectdojo (segredos via env, nunca em args)
+        env:
+          DEFECTDOJO_URL: ${{ secrets.DEFECTDOJO_URL }}
+          DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work \
+            -e DEFECTDOJO_URL -e DEFECTDOJO_TOKEN \
+            "${{ inputs.image }}" report /work --defectdojo --config "${{ inputs.config }}"

@@ -78,7 +78,7 @@ def run_autofix(
         if not applied:
             results.append(FindingFixResult(f.fingerprint, f.rule_id, "rejected"))
             continue
-        # JUIZ determinístico e independente: gate + anti-supressão (bloqueia # nosec) + testes.
+        # JUIZ determinístico e independente: gate + anti-supressao (bloqueia supressores) + testes.
         verdict = run_verify(orchestrator, target, base_ref=base_ref, test_command=test_command)
         if verdict.accepted:
             results.append(FindingFixResult(f.fingerprint, f.rule_id, "fixed"))

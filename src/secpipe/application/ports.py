@@ -29,6 +29,19 @@ class ReporterPort(Protocol):
         ...
 
 
+@runtime_checkable
+class ExporterPort(Protocol):
+    """Envia o Report para um sistema externo (ex.: DefectDojo). Opt-in; chave via env (nunca no repo)."""
+    name: str
+    def is_available(self) -> bool:
+        """True se configurado (URL + token). False -> export é pulado (não é erro)."""
+        ...
+
+    def export(self, report: Report) -> object:
+        """Exporta o Report. Retorno opaco p/ a app (o tipo concreto mora no adapter)."""
+        ...
+
+
 # ── Fase 3 (auto-fix DRV) — contrato declarado, ainda não implementado ──────────
 @runtime_checkable
 class FixerPort(Protocol):
