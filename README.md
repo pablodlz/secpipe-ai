@@ -320,9 +320,6 @@ See [`SECURITY.md`](SECURITY.md) and the threat model in [`docs/specs/03-securit
 adoption · **keyless Detect→Repair→Verify** · deterministic verifier · abstention · fix memory · **MCP server** ·
 public container image · green CI.
 
-**Roadmap (next):** **DAST** (OWASP ZAP baseline — needs a deployed target) · deeper **IaC** scanning ·
-per-project **threat-model assist** (agent-drafted STRIDE) · headless **PR-bot** mode · **SBOM** + signed releases.
-
 ```mermaid
 flowchart LR
     P0["Phase 0<br/>Foundation ✅"] --> P1["Phase 1<br/>Scan engine ✅"] --> P2["Phase 2<br/>Adoption ✅"] --> P3["Phase 3<br/>Auto-fix DRV ✅"] --> P4["Phase 4<br/>Integrate everywhere ▶"]
@@ -347,16 +344,6 @@ and the MCP server works with any MCP-capable agent. Crucially, enforcement (hoo
 
 **Is it really free?** Yes — only free/OSS scanners, self-hosted, no metering. `semgrep`/`codemodder` don't run
 natively on Windows (they run in the Linux container/CI); everything else runs on Windows too.
-
-**Does it do threat modeling (STRIDE)?** Yes — first for *itself*: the pipeline is threat-modeled with STRIDE
-(assets, the "who-guards-the-guard" self-gaming threat, a risk register) in
-[`docs/specs/03-security.md`](docs/specs/03-security.md), and those controls are exactly what you get. Auto-drafting
-a STRIDE model for *your* app is on the roadmap — your agent can already produce one, guided by `AGENTS.md`.
-
-**What about DAST?** Roadmapped (OWASP ZAP baseline). secpipe is **static-first** — SAST, SCA, secrets,
-IaC/containers, supply-chain — because that fits the **keyless, CI-time** model with no running app to attack.
-DAST needs a deployed target and lands in a later phase (see
-[`docs/adr/0003`](docs/adr/0003-tool-selection-free.md) and [`docs/specs/05-roadmap.md`](docs/specs/05-roadmap.md)).
 
 **Can it just silence findings to pass?** No — that's the whole design. Suppression is blocked at commit time,
 the policy isn't editable by the consumer, and the verifier is deterministic.
