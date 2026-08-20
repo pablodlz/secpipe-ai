@@ -28,6 +28,7 @@ from secpipe.adapters.sbom import emit_sbom
 from secpipe.application.ports import ReporterPort
 from secpipe.application.use_cases.autofix import run_autofix
 from secpipe.application.use_cases.config_validate import validate_config
+from secpipe.application.use_cases.diff import get_added_lines
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.policy_guard import LOCK_FILE, check_lock, write_lock
 from secpipe.application.use_cases.precommit import run as run_precommit
@@ -36,6 +37,7 @@ from secpipe.application.use_cases.threat_model import render_json as tm_render_
 from secpipe.application.use_cases.threat_model import render_markdown as tm_render_md
 from secpipe.application.use_cases.verify import verify as run_verify
 from secpipe.domain import Report, ScanResult, ScanStatus, Severity
+from secpipe.domain.diffscope import is_in_diff
 from secpipe.domain.fix_memory import VerifiedFix
 from secpipe.domain.policy_lock import make_snapshot
 from secpipe.foundation.composition_root import (
@@ -84,14 +86,19 @@ def _write_or_print(text: str, output: str | None) -> None:
 
 
 def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = False,
-              output: str | None = None) -> int:
+              output: str | None = None, diff_base: str | None = None) -> int:
     cfg = Config.load(config_path)
     report, decision = build(cfg).run(target)
     do_epss, do_kev = enrich or cfg.enrich_epss, enrich or cfg.enrich_kev
     if do_epss or do_kev:
         # EPSS/KEV: anota (fail-open) e re-avalia o gate (KEV pode bloquear).
         report = enrich_report(report, cfg.cache_dir, epss=do_epss, kev=do_kev)
-        decision = build_policy(cfg).evaluate(report)
+    if do_epss or do_kev or diff_base:
+        only = None
+        if diff_base:  # diff-scope: bloqueia só o código NOVO do PR (+ sempre-bloqueados)
+            added = get_added_lines(target, diff_base)
+            only = frozenset(f.fingerprint for f in report.findings if is_in_diff(f, added))
+        decision = build_policy(cfg).evaluate(report, only=only)
     _write_or_print(_REPORTERS[fmt]().render(report), output)
     if report.ran == 0:
         print(f"\n{NO_SCANNER_WARN}", file=sys.stderr)
@@ -338,6 +345,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--enrich", action="store_true",
                       help="anexa EPSS + CISA KEV aos achados com CVE (usa rede; KEV bloqueia)")
     scan.add_argument("--output", default=None, help="grava a saida num arquivo (em vez do stdout)")
+    scan.add_argument("--diff-base", dest="diff_base", default=None,
+                      help="diff-scope: bloqueia so o codigo novo vs este ref (ex.: origin/main)")
     init = sub.add_parser("init", help="adota o secpipe no projeto (config + AGENTS.md + hook + workflow)")
     init.add_argument("target", nargs="?", default=".", help="diretorio do projeto (default: .)")
     init.add_argument("--force", action="store_true", help="sobrescreve arquivos existentes")
@@ -423,7 +432,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return _cmd_doctor()
     if args.command == "scan":
-        return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output)
+        return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output, args.diff_base)
     if args.command == "sbom":
         return _cmd_sbom(args.target, args.fmt, args.output)
     if args.command == "badge":

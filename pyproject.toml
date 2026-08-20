@@ -38,6 +38,7 @@ select = ["E", "F", "B", "S", "I", "UP"]
 "src/secpipe/application/use_cases/init.py" = ["S603", "S607"]
 "src/secpipe/application/use_cases/precommit.py" = ["S603", "S607"]
 "src/secpipe/application/use_cases/verify.py" = ["S603", "S607"]
+"src/secpipe/application/use_cases/diff.py" = ["S603", "S607"]   # git diff (dev tool, contexto controlado)
 # epss_kev.py: urlopen (S310) com URL FIXA validada p/ https (api.first.org / cisa.gov). Sem interpolação
 # de dado do repo; consulta só por CVE público. Decisão revisada a nível de projeto, não inline.
 "src/secpipe/adapters/epss_kev.py" = ["S310"]

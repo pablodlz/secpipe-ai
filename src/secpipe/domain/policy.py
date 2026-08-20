@@ -3,7 +3,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .models import Report, ScanStatus, Severity
+from .abstention import escalates
+from .models import Finding, Report, ScanStatus, Severity
+
+
+def _always_block(f: Finding) -> bool:
+    """Nunca escondido, mesmo no modo diff: sensível (auth/cripto/segredo/CRITICAL) ou exploração ativa (KEV)."""
+    return escalates(f.cwe, f.severity) or f.kev
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,7 +29,10 @@ class GatePolicy:
     require_scanners: frozenset[str] = field(default_factory=frozenset)  # nomes que DEVEM ter rodado (opt-in)
     kev_blocks: bool = True  # achado no CISA KEV (exploração ativa) bloqueia mesmo abaixo de block_severity
 
-    def evaluate(self, report: Report) -> GateDecision:
+    def evaluate(self, report: Report, *, only: frozenset[str] | None = None) -> GateDecision:
+        """`only` (diff-scope): se dado, o bloqueio por severidade/KEV considera SÓ os achados cujo
+        fingerprint está nele (código novo do PR) + os SEMPRE-bloqueados (sensível/KEV). Cobertura e
+        erros seguem usando o Report completo. Não persiste supressão (ADR-0008)."""
         # Fail-closed: se algum scanner ERROU, não podemos provar segurança -> bloqueia.
         if report.has_errors:
             return GateDecision(False, "gate fail-closed: um scanner falhou (status=error)")
@@ -39,12 +48,15 @@ class GatePolicy:
             missing = sorted(self.require_scanners - ran)
             if missing:
                 return GateDecision(False, f"cobertura insuficiente: exigido(s) nao rodou(aram): {', '.join(missing)}")
+        findings = report.findings
+        if only is not None:  # diff-scope: só o código novo + o que nunca se esconde
+            findings = [f for f in findings if f.fingerprint in only or _always_block(f)]
         # KEV: exploração ATIVA conhecida bloqueia independentemente da severidade nominal.
         if self.kev_blocks:
-            kev_hits = [f for f in report.findings if f.kev]
+            kev_hits = [f for f in findings if f.kev]
             if kev_hits:
                 return GateDecision(False, f"{len(kev_hits)} achado(s) no CISA KEV (exploracao ativa) - bloqueado")
-        blocking = [f for f in report.findings if f.severity >= self.block_severity]
+        blocking = [f for f in findings if f.severity >= self.block_severity]
         if blocking:
             worst = max(f.severity for f in blocking)
             return GateDecision(
