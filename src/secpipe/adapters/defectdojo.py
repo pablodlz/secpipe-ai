@@ -6,6 +6,7 @@ EXCEÇÃO KEYED sancionada (como o PR-bot): token SÓ via env (DEFECTDOJO_TOKEN)
 verificado; valida esquema http/https. urlopen: S310/B310 ignorados a nível de projeto (URL validada)."""
 from __future__ import annotations
 
+import http.client
 import os
 import ssl
 import urllib.error
@@ -13,6 +14,7 @@ import urllib.request
 import uuid
 from dataclasses import dataclass
 
+from secpipe.adapters._http import open_no_redirect, scheme_ok
 from secpipe.adapters.reporters import SarifReporter
 from secpipe.domain import Report
 from secpipe.foundation.config import DefectDojoConfig
@@ -67,8 +69,8 @@ class DefectDojoExporter:
         if not self.is_available():
             return ExportResult(False, "DefectDojo nao configurado (URL + DEFECTDOJO_TOKEN)")
         url = self._url()
-        if not url.startswith(("https://", "http://")):
-            return ExportResult(False, "URL do DefectDojo invalida (use http/https)")
+        if not scheme_ok(url):   # exige https (http só localhost) — token NUNCA em texto claro p/ host remoto
+            return ExportResult(False, "URL do DefectDojo invalida: exija https (http so localhost)")
         fields = {
             "scan_type": self.config.scan_type, "product_name": self.config.product_name,
             "engagement_name": self.config.engagement_name, "active": str(self.config.active).lower(),
@@ -84,10 +86,10 @@ class DefectDojoExporter:
         if self.config.ca_bundle:
             ctx.load_verify_locations(self.config.ca_bundle)
         try:
-            with urllib.request.urlopen(req, timeout=self.config.timeout, context=ctx) as resp:  # S310/B310: pyproject
+            with open_no_redirect(req, timeout=self.config.timeout, context=ctx) as resp:  # não segue redirect
                 code = resp.getcode()
         except urllib.error.HTTPError as exc:
             return ExportResult(False, f"HTTP {exc.code} do DefectDojo")   # sem corpo (evita vazar token)
-        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        except (urllib.error.URLError, TimeoutError, ValueError, http.client.HTTPException) as exc:
             return ExportResult(False, f"falha ao enviar: {type(exc).__name__}")
         return ExportResult(True, f"enviado (HTTP {code})")

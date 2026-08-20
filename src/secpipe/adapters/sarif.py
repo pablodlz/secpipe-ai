@@ -92,6 +92,8 @@ def parse_sarif(raw: str, default_tool: str) -> list[Finding]:
     if not raw.strip():
         return []
     doc = json.loads(raw)
+    if not isinstance(doc, dict):   # JSON válido não-objeto ([], null, 42) -> ERROR fail-closed (achado #11)
+        raise ValueError("SARIF: o topo do documento nao e um objeto")
     findings: list[Finding] = []
     for run in doc.get("runs") or []:
         if not isinstance(run, dict):
@@ -109,12 +111,13 @@ def parse_sarif(raw: str, default_tool: str) -> list[Finding]:
                 _props(result).get("cwe"), _props(rule).get("cwe"),
                 _props(rule).get("tags"), rule.get("name"), message,
             )
-            # severidade: security-severity numérica (result > rule) > level SARIF
-            severity = (
-                _sev_from_score(str(_props(result).get("security-severity", "")))
-                or _sev_from_score(str(_props(rule).get("security-severity", "")))
-                or _LEVEL.get(str(result.get("level") or "").lower(), Severity.MEDIUM)
-            )
+            # severidade: security-severity numérica (result > rule) > level SARIF.
+            # NÃO usar `or` (Severity.INFO==0 é falsy e seria descartado — achado #13); sentinela None explícita.
+            severity = _sev_from_score(str(_props(result).get("security-severity", "")))
+            if severity is None:
+                severity = _sev_from_score(str(_props(rule).get("security-severity", "")))
+            if severity is None:
+                severity = _LEVEL.get(str(result.get("level") or "").lower(), Severity.MEDIUM)
             findings.append(
                 Finding(
                     tool=str(tool_name), rule_id=rule_id, severity=severity,

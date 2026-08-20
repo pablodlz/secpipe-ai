@@ -6,6 +6,7 @@ SEGURANÇA: chave lida SÓ de env; nunca em __repr__, nunca em URL/query, redigi
 localhost). Sem dep nova. urlopen: S310/B310 ignorados a nível de PROJETO (URL validada, sem dado do repo)."""
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import ssl
@@ -13,28 +14,24 @@ import urllib.error
 import urllib.request
 from collections.abc import Mapping
 
+from secpipe.adapters._http import open_no_redirect, scheme_ok
+
 _ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 _ANTHROPIC_VERSION = "2023-06-01"
 
 
-def _scheme_ok(url: str) -> bool:
-    if url.startswith("https://"):
-        return True
-    return url.startswith(("http://localhost", "http://127.0.0.1"))  # local só
-
-
 def _post(url: str, payload: Mapping[str, object], headers: Mapping[str, str], timeout: int) -> dict[str, object]:
-    if not _scheme_ok(url):
+    if not scheme_ok(url):   # https; http só localhost (por hostname, não prefixo)
         raise ValueError("apenas https (http so em localhost)")
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", **headers})
     ctx = ssl.create_default_context()
     try:
-        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:  # urlopen ok: pyproject S310/B310
+        with open_no_redirect(req, timeout=timeout, context=ctx) as resp:   # não segue redirect (não vaza a chave)
             data = json.loads(resp.read(5_000_000).decode("utf-8", "replace"))
     except urllib.error.HTTPError as exc:
         raise RuntimeError(f"HTTP {exc.code} do provedor de IA") from None  # sem corpo/headers (evita vazar)
-    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+    except (urllib.error.URLError, TimeoutError, ValueError, http.client.HTTPException) as exc:
         raise RuntimeError(f"falha de rede/parse: {type(exc).__name__}") from None
     if not isinstance(data, dict):
         raise RuntimeError("resposta de IA inesperada")

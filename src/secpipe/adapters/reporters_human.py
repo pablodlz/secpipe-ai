@@ -28,8 +28,18 @@ def _blocking(report: Report, block: Severity = Severity.HIGH) -> int:
 
 
 def _md_cell(text: str) -> str:
-    """Neutraliza pipe/quebra de linha (injeção/quebra de tabela Markdown)."""
-    return text.replace("|", "\\|").replace("\n", " ").replace("\r", " ").strip()[:200]
+    """Neutraliza pipe/quebra de linha/backtick (injeção/quebra de tabela Markdown)."""
+    return text.replace("|", "\\|").replace("`", "'").replace("\n", " ").replace("\r", " ").strip()[:200]
+
+
+def _wc_data(text: str) -> str:
+    """Escape do CORPO de um GitHub workflow command (após `::`)."""
+    return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def _wc_prop(text: str) -> str:
+    """Escape de VALOR de propriedade (`file=`, `title=`): também vírgula e dois-pontos (separadores)."""
+    return _wc_data(text).replace(":", "%3A").replace(",", "%2C")
 
 
 class MarkdownReporter:
@@ -68,10 +78,12 @@ class GithubAnnotationsReporter:
         lines: list[str] = []
         for f in report.findings[:50]:  # Actions limita anotações; capamos
             level = "error" if (f.severity >= Severity.HIGH or f.kev) else "warning"
-            msg = f.message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-            title = f.rule_id.replace(",", " ")
-            loc = f"file={f.file},line={max(1, f.line)}" if f.file else ""
-            lines.append(f"::{level} {loc},title=secpipe {title}::{msg[:400]}")
+            # ESCAPAR TODO texto de terceiro (message/rule_id/file) — rule_id e file eram inseridos crus,
+            # permitindo injeção de workflow-command via \n em nome de arquivo/regra (achado #8).
+            msg = _wc_data(f.message)[:400]
+            title = _wc_prop(f.rule_id)[:200]
+            loc = f"file={_wc_prop(f.file)},line={max(1, f.line)}" if f.file else ""
+            lines.append(f"::{level} {loc},title=secpipe {title}::{msg}")
         return "\n".join(lines)
 
 

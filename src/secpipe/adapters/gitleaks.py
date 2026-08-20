@@ -19,8 +19,12 @@ def parse_gitleaks(raw: str) -> list[Finding]:
     if not raw.strip():
         return []
     data = json.loads(raw)
+    if not isinstance(data, list):   # report do gitleaks é uma lista; qualquer outra coisa -> ERROR (achado #12)
+        raise ValueError("gitleaks: report nao e uma lista")
     findings: list[Finding] = []
     for item in data:
+        if not isinstance(item, dict):
+            continue
         findings.append(
             Finding(
                 tool="gitleaks",
@@ -58,7 +62,7 @@ class GitleaksScanner:
             try:
                 with open(report_path, encoding="utf-8") as fh:
                     findings = parse_gitleaks(fh.read())
-            except (OSError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError) as exc:
                 return ScanResult(self.name, ScanStatus.ERROR, (), f"report ilegível: {exc}")
             return ScanResult(self.name, ScanStatus.OK, tuple(findings), "")
         finally:
