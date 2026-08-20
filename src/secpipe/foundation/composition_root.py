@@ -75,6 +75,7 @@ def build_policy(config: Config) -> GatePolicy:
         min_scanners=config.min_scanners,
         require_scanners=frozenset(config.require_scanners),
         kev_blocks=config.kev_blocks,
+        rules=config.policy_rules,
     )
 
 

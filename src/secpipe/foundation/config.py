@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass, field
 
 from secpipe.domain.licenses import LicensePolicy
+from secpipe.domain.rules import PolicyRule
 
 # Default FORTE (não é versão capada): conjunto recomendado de scanners e gate em HIGH.
 _DEFAULT_SCANNERS: tuple[str, ...] = ("gitleaks", "semgrep", "trivy")
@@ -27,6 +28,22 @@ class DefectDojoConfig:
     auto_create_context: bool = True
     ca_bundle: str = ""
     timeout: int = 60
+
+
+def _read_policy_rules(d: dict[str, object]) -> tuple[PolicyRule, ...]:
+    policy = d.get("policy")
+    rules = policy.get("rules") if isinstance(policy, dict) else None
+    if not isinstance(rules, list):
+        return ()
+    out: list[PolicyRule] = []
+    for item in rules:
+        if isinstance(item, dict):
+            out.append(PolicyRule(
+                cwe=str(item.get("cwe", "")), tool=str(item.get("tool", "")),
+                path_glob=str(item.get("path", "") or item.get("path_glob", "")),
+                min_severity=str(item.get("min_severity", "")),
+            ))
+    return tuple(out)
 
 
 def _read_defectdojo(d: dict[str, object]) -> DefectDojoConfig | None:
@@ -112,6 +129,7 @@ class Config:
     cache_dir: str = ".secpipe/cache"  # cache de EPSS/KEV (TTL) p/ modo offline
     internal_prefixes: tuple[str, ...] = field(default_factory=tuple)  # p/ malicious-deps (dependency-confusion)
     defectdojo: DefectDojoConfig | None = None  # export opt-in p/ DefectDojo (token via env). None = off.
+    policy_rules: tuple[PolicyRule, ...] = field(default_factory=tuple)  # policy-as-code (só ELEVA o bloqueio)
 
     @staticmethod
     def default() -> Config:
@@ -147,6 +165,7 @@ class Config:
             cache_dir=str(d.get("cache_dir")) if isinstance(d.get("cache_dir"), str) else ".secpipe/cache",
             internal_prefixes=tuple(str(x) for x in prefixes) if isinstance(prefixes, list) else (),
             defectdojo=_read_defectdojo(d),
+            policy_rules=_read_policy_rules(d),
         )
 
     @staticmethod
