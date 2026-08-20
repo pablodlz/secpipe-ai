@@ -35,6 +35,7 @@ from secpipe.application.use_cases.diff import get_added_lines
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.policy_guard import LOCK_FILE, check_lock, write_lock
 from secpipe.application.use_cases.precommit import run as run_precommit
+from secpipe.application.use_cases.reachability import build_import_index
 from secpipe.application.use_cases.threat_export import render_threat_dragon
 from secpipe.application.use_cases.threat_model import build_threat_model
 from secpipe.application.use_cases.threat_model import render_json as tm_render_json
@@ -44,6 +45,7 @@ from secpipe.domain import Finding, Report, ScanResult, ScanStatus, Severity
 from secpipe.domain.diffscope import is_in_diff
 from secpipe.domain.fix_memory import VerifiedFix
 from secpipe.domain.policy_lock import make_snapshot
+from secpipe.domain.reachability import annotate as reach_annotate
 from secpipe.domain.waivers import partition as waiver_partition
 from secpipe.foundation.composition_root import (
     _SCANNER_REGISTRY,
@@ -91,13 +93,19 @@ def _write_or_print(text: str, output: str | None) -> None:
 
 
 def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = False,
-              output: str | None = None, diff_base: str | None = None) -> int:
+              output: str | None = None, diff_base: str | None = None, reachability: bool = False) -> int:
     cfg = Config.load(config_path)
     report, decision = build(cfg).run(target)
     do_epss, do_kev = enrich or cfg.enrich_epss, enrich or cfg.enrich_kev
     if do_epss or do_kev:
         # EPSS/KEV: anota (fail-open) e re-avalia o gate (KEV pode bloquear).
         report = enrich_report(report, cfg.cache_dir, epss=do_epss, kev=do_kev)
+    if reachability or cfg.reachability:
+        # reachability-lite: anota se a dep vulneravel e importada (SO anota, nao muda o gate).
+        index = build_import_index(target)
+        report = Report(tuple(
+            dataclasses.replace(r, findings=tuple(reach_annotate(list(r.findings), index)))
+            for r in report.results))
     waived: list[Finding] = []
     waivers = load_waivers(os.path.join(target, WAIVERS_FILE))
     if waivers:
@@ -387,6 +395,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--output", default=None, help="grava a saida num arquivo (em vez do stdout)")
     scan.add_argument("--diff-base", dest="diff_base", default=None,
                       help="diff-scope: bloqueia so o codigo novo vs este ref (ex.: origin/main)")
+    scan.add_argument("--reachability", action="store_true",
+                      help="anota se a dep vulneravel (SCA) e importada no codigo (so anota, offline)")
     init = sub.add_parser("init", help="adota o secpipe no projeto (config + AGENTS.md + hook + workflow)")
     init.add_argument("target", nargs="?", default=".", help="diretorio do projeto (default: .)")
     init.add_argument("--force", action="store_true", help="sobrescreve arquivos existentes")
@@ -474,7 +484,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return _cmd_doctor()
     if args.command == "scan":
-        return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output, args.diff_base)
+        return _cmd_scan(args.config, args.target, args.fmt, args.enrich, args.output, args.diff_base,
+                         args.reachability)
     if args.command == "sbom":
         return _cmd_sbom(args.target, args.fmt, args.output)
     if args.command == "waiver-list":
