@@ -46,7 +46,7 @@ from secpipe.domain.diffscope import is_in_diff
 from secpipe.domain.fix_memory import VerifiedFix
 from secpipe.domain.policy_lock import make_snapshot
 from secpipe.domain.reachability import annotate as reach_annotate
-from secpipe.domain.waivers import partition as waiver_partition
+from secpipe.domain.waivers import partition_results
 from secpipe.foundation.composition_root import (
     _SCANNER_REGISTRY,
     build,
@@ -109,17 +109,21 @@ def _cmd_scan(config_path: str | None, target: str, fmt: str, enrich: bool = Fal
     waived: list[Finding] = []
     waivers = load_waivers(os.path.join(target, WAIVERS_FILE))
     if waivers:
-        _remaining, waived = waiver_partition(list(report.findings), waivers, date.today())
+        # Filtra por achado RAW (re-checa is_waivable): NUNCA dropa CRITICAL/KEV co-localizado.
+        new_results, waived = partition_results(report.results, waivers, date.today())
         if waived:
-            drop = {f.fingerprint for f in waived}
-            report = Report(tuple(
-                dataclasses.replace(r, findings=tuple(f for f in r.findings if f.fingerprint not in drop))
-                for r in report.results))
+            report = Report(new_results)
     if do_epss or do_kev or diff_base or waived:
         only = None
         if diff_base:  # diff-scope: bloqueia só o código NOVO do PR (+ sempre-bloqueados)
             added = get_added_lines(target, diff_base)
-            only = frozenset(f.fingerprint for f in report.findings if is_in_diff(f, added))
+            if added is None:
+                # git diff FALHOU (ex.: base nao fetchada em shallow clone) -> FAIL-CLOSED:
+                # avalia o report COMPLETO em vez de estreitar o gate para nada.
+                print("AVISO: diff-scope desativado (git diff falhou) — gate no report COMPLETO (fail-closed).",
+                      file=sys.stderr)
+            else:
+                only = frozenset(f.fingerprint for f in report.findings if is_in_diff(f, added))
         decision = build_policy(cfg).evaluate(report, only=only)
     _write_or_print(_REPORTERS[fmt]().render(report), output)
     if waived:  # transparência total: waivers são SEMPRE reportados

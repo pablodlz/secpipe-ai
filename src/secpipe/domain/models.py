@@ -59,16 +59,23 @@ class ScanResult:
     detail: str = ""
 
 
-# Dirs de ruído (dependências/artefatos, não código do projeto). Regra DO MOTOR (FEAT-003) —
-# não editável pelo projeto: achados aqui dentro são de terceiros, não do que o time desenvolve.
+# Dirs de dependências/artefatos INSTALADOS (terceiros), não código do projeto. Regra DO MOTOR (FEAT-003).
+# Conservador: só dirs inequivocamente de terceiros/instalados. NÃO inclui 'tools/build/dist/vendor' — esses
+# costumam ser código PRIMEIRO-PARTIDO e não podem ser escondidos do gate (achado de review).
 _EXCLUDED_SEGMENTS = frozenset({
-    ".venv", "venv", "node_modules", ".git", "tools", "dist", "build", ".tox", "vendor",
+    ".venv", "venv", "node_modules", ".git", ".tox",
     "__pycache__", ".mypy_cache", ".ruff_cache", ".pytest_cache", ".cache", "site-packages",
 })
+# NUNCA excluídos por caminho, mesmo em dir de terceiros: segredo/CRITICAL/KEV (invariante "nunca escondido").
+_NEVER_EXCLUDE_CWES = frozenset({"CWE-798"})
 
 
 def _in_excluded_path(path: str) -> bool:
     return any(seg in _EXCLUDED_SEGMENTS for seg in path.replace("\\", "/").split("/"))
+
+
+def _never_exclude(finding: Finding) -> bool:
+    return finding.severity >= Severity.CRITICAL or finding.kev or finding.cwe.upper() in _NEVER_EXCLUDE_CWES
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,7 +89,8 @@ class Report:
         out: list[Finding] = []
         for result in self.results:
             for finding in result.findings:
-                if finding.file and _in_excluded_path(finding.file):
+                # exclui dir de terceiros — MAS nunca esconde segredo/CRITICAL/KEV (fail-closed).
+                if finding.file and _in_excluded_path(finding.file) and not _never_exclude(finding):
                     continue
                 fp = finding.fingerprint
                 if fp not in seen:

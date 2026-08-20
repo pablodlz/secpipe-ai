@@ -7,7 +7,10 @@ from __future__ import annotations
 
 import subprocess
 
-_SUPPRESSORS = ("# nosec", "#nosec", "# noqa", "#noqa", "nosemgrep")
+_SUPPRESSORS = (
+    "# nosec", "#nosec", "# noqa", "#noqa", "nosemgrep",
+    "gitleaks:allow", "checkov:skip", "trivy:ignore", "semgrep-ignore",
+)
 _IGNORE = {
     "scripts/check_no_suppression.py",
     ".pre-commit-config.yaml",
