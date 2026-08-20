@@ -9,11 +9,13 @@ from secpipe.adapters.gitleaks import GitleaksScanner
 from secpipe.adapters.gitleaks_history import GitleaksHistoryScanner
 from secpipe.adapters.gosec import GosecScanner
 from secpipe.adapters.hadolint import HadolintScanner
+from secpipe.adapters.license_scan import LicenseScanner
 from secpipe.adapters.npm_audit import NpmAuditScanner
 from secpipe.adapters.osv_scanner import OsvScanner
 from secpipe.adapters.pip_audit import PipAuditScanner
 from secpipe.adapters.semgrep import SemgrepScanner
 from secpipe.adapters.trivy import TrivyScanner
+from secpipe.adapters.trivy_image import TrivyImageScanner
 from secpipe.application.orchestrator import Orchestrator
 from secpipe.application.ports import ScannerPort
 from secpipe.domain import GatePolicy, Severity
@@ -35,18 +37,25 @@ _SCANNER_REGISTRY: dict[str, type] = {
     "npm-audit": NpmAuditScanner,   # SCA JS (precisa de npm + package-lock.json)
     "gitleaks-history": GitleaksHistoryScanner,   # segredos no HISTORICO git (opt-in)
     "dast": ZapDastScanner,   # DAST (ZAP baseline) — opt-in; precisa de dast_target na config
+    "image": TrivyImageScanner,     # scan de imagem de container (trivy image) — opt-in; precisa image_target
+    "license": LicenseScanner,      # conformidade de licencas (trivy) — opt-in; precisa politica licenses
 }
 
 
 def build_scanners(config: Config) -> tuple[ScannerPort, ...]:
     scanners: list[ScannerPort] = []
     for name in config.scanners:
-        if name == "dast":   # DAST recebe a URL alvo da config (demais scanners são zero-arg)
+        # Scanners PARAMETRIZADOS recebem alvo/politica da config (os demais sao zero-arg).
+        if name == "dast":
             scanners.append(ZapDastScanner(config.dast_target))
-            continue
-        factory = _SCANNER_REGISTRY.get(name)
-        if factory is not None:
-            scanners.append(factory())
+        elif name == "image":
+            scanners.append(TrivyImageScanner(config.image_target))
+        elif name == "license":
+            scanners.append(LicenseScanner(config.license_policy))
+        else:
+            factory = _SCANNER_REGISTRY.get(name)
+            if factory is not None:
+                scanners.append(factory())
     return tuple(scanners)
 
 
