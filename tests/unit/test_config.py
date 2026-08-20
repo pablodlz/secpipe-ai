@@ -14,3 +14,10 @@ def test_from_dict_overrides() -> None:
     cfg = Config.from_dict({"scanners": ["gitleaks"], "block_severity": "MEDIUM"})
     assert cfg.scanners == ("gitleaks",)
     assert cfg.block_severity == "MEDIUM"
+
+
+def test_dast_target_parsing_nested_and_flat() -> None:
+    from secpipe.foundation.config import Config
+    assert Config.from_dict({"dast": {"target_url": "http://a"}}).dast_target == "http://a"
+    assert Config.from_dict({"dast_target": "http://b"}).dast_target == "http://b"
+    assert Config.from_dict({}).dast_target == ""

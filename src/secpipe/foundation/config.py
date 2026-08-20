@@ -11,12 +11,22 @@ _DEFAULT_SCANNERS: tuple[str, ...] = ("gitleaks", "semgrep", "trivy")
 _DEFAULT_BLOCK_SEVERITY = "HIGH"
 
 
+def _read_dast_target(d: dict[str, object]) -> str:
+    """Aceita `dast: {target_url: ...}` (preferido) ou `dast_target: ...` (atalho). Vazio = DAST off."""
+    dast = d.get("dast")
+    if isinstance(dast, dict):
+        return str(dast.get("target_url") or "")
+    flat = d.get("dast_target")
+    return flat if isinstance(flat, str) else ""
+
+
 @dataclass(frozen=True, slots=True)
 class Config:
     scanners: tuple[str, ...] = _DEFAULT_SCANNERS
     block_severity: str = _DEFAULT_BLOCK_SEVERITY
     languages: tuple[str, ...] = field(default_factory=tuple)  # vazio = auto-detect (Fase 1)
     test_command: tuple[str, ...] = field(default_factory=tuple)  # ex.: ["pytest","-q"] — usado no `verify`
+    dast_target: str = ""  # URL alvo do DAST (ZAP baseline). Vazio = DAST desligado (estático plug-and-play).
 
     @staticmethod
     def default() -> Config:
@@ -35,6 +45,7 @@ class Config:
             block_severity=str(block) if isinstance(block, str) else _DEFAULT_BLOCK_SEVERITY,
             languages=tuple(languages) if isinstance(languages, list) else (),
             test_command=tuple(str(x) for x in test_cmd) if isinstance(test_cmd, list) else (),
+            dast_target=_read_dast_target(d),
         )
 
     @staticmethod
