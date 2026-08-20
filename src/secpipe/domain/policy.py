@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from .abstention import escalates
 from .models import Finding, Report, ScanStatus, Severity
+from .rules import PolicyRule, blocked_by_rules
 
 
 def _always_block(f: Finding) -> bool:
@@ -28,6 +29,7 @@ class GatePolicy:
     min_scanners: int = 1                                   # <1 seria verde-falso; default exige ≥1
     require_scanners: frozenset[str] = field(default_factory=frozenset)  # nomes que DEVEM ter rodado (opt-in)
     kev_blocks: bool = True  # achado no CISA KEV (exploração ativa) bloqueia mesmo abaixo de block_severity
+    rules: tuple[PolicyRule, ...] = ()  # policy-as-code: regras que ELEVAM o bloqueio (nunca relaxam)
 
     def evaluate(self, report: Report, *, only: frozenset[str] | None = None) -> GateDecision:
         """`only` (diff-scope): se dado, o bloqueio por severidade/KEV considera SÓ os achados cujo
@@ -56,7 +58,7 @@ class GatePolicy:
             kev_hits = [f for f in findings if f.kev]
             if kev_hits:
                 return GateDecision(False, f"{len(kev_hits)} achado(s) no CISA KEV (exploracao ativa) - bloqueado")
-        blocking = [f for f in findings if f.severity >= self.block_severity]
+        blocking = [f for f in findings if f.severity >= self.block_severity or blocked_by_rules(self.rules, f)]
         if blocking:
             worst = max(f.severity for f in blocking)
             return GateDecision(
