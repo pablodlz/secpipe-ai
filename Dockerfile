@@ -7,9 +7,13 @@ ARG GITLEAKS_VERSION=8.30.1
 ARG GITLEAKS_SHA256=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
 ARG TRIVY_VERSION=0.74.0
 ARG TRIVY_SHA256=2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
+ARG HADOLINT_VERSION=2.12.0
+ARG HADOLINT_SHA256=56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010
+ARG OSV_VERSION=2.5.1
+ARG OSV_SHA256=f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be
 
-# Scanners via pip: SAST multi-linguagem (semgrep) + Python (bandit, pip-audit) + fixer (codemodder).
-RUN pip install --no-cache-dir semgrep bandit pip-audit codemodder
+# Scanners via pip: SAST multi-linguagem (semgrep) + Python (bandit, pip-audit) + IaC (checkov) + fixer.
+RUN pip install --no-cache-dir semgrep bandit pip-audit codemodder checkov
 
 # gitleaks + trivy: binários Linux pinados, com verificação de sha256. ca-certificates fica (trivy baixa
 # a vuln-DB em runtime); curl é removido depois para enxugar a imagem.
@@ -23,9 +27,15 @@ RUN set -eux; \
       "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"; \
     echo "${TRIVY_SHA256}  /tmp/trivy.tgz" | sha256sum -c -; \
     tar -xzf /tmp/trivy.tgz -C /usr/local/bin trivy; \
+    curl -fsSL -o /usr/local/bin/hadolint \
+      "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64"; \
+    echo "${HADOLINT_SHA256}  /usr/local/bin/hadolint" | sha256sum -c -; chmod +x /usr/local/bin/hadolint; \
+    curl -fsSL -o /usr/local/bin/osv-scanner \
+      "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64"; \
+    echo "${OSV_SHA256}  /usr/local/bin/osv-scanner" | sha256sum -c -; chmod +x /usr/local/bin/osv-scanner; \
     rm -f /tmp/gitleaks.tgz /tmp/trivy.tgz; \
     apt-get purge -y curl; apt-get autoremove -y; rm -rf /var/lib/apt/lists/*; \
-    gitleaks version; trivy --version
+    gitleaks version; trivy --version; hadolint --version; osv-scanner --version
 
 # secpipe (CLI)
 WORKDIR /app
