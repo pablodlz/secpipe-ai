@@ -51,4 +51,6 @@ def scanners_for(langs: set[str]) -> list[str]:
         scanners.append("hadolint")                # lint de Dockerfile
     if "go" in langs:
         scanners.append("gosec")                   # SAST de Go (requer toolchain go)
+    if "javascript" in langs:
+        scanners.append("npm-audit")               # SCA JS (requer npm + package-lock.json)
     return scanners
