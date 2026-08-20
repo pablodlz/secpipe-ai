@@ -1,5 +1,6 @@
-"""CLI machine-first do secpipe: doctor · scan · fix · verify · init · hook · mcp · remember/recall · version.
+"""CLI machine-first do secpipe.
 
+Comandos: doctor · scan · fix · verify · threat-model · init · hook · mcp · remember/recall · version.
 Saída pensada para a IA consumir (JSON em `scan`). Exit code de `scan`/`verify` reflete o gate."""
 from __future__ import annotations
 
@@ -11,6 +12,9 @@ from secpipe.adapters.fix_memory import FixMemory
 from secpipe.adapters.reporters import JsonReporter, SarifReporter
 from secpipe.application.use_cases.init import init as run_init
 from secpipe.application.use_cases.precommit import run as run_precommit
+from secpipe.application.use_cases.threat_model import build_threat_model
+from secpipe.application.use_cases.threat_model import render_json as tm_render_json
+from secpipe.application.use_cases.threat_model import render_markdown as tm_render_md
 from secpipe.application.use_cases.verify import verify as run_verify
 from secpipe.domain.fix_memory import VerifiedFix
 from secpipe.foundation.composition_root import _SCANNER_REGISTRY, build, build_fixer
@@ -111,6 +115,16 @@ def _cmd_verify(config_path: str | None, target: str, base_ref: str) -> int:
     return 0 if verdict.accepted else 1
 
 
+def _cmd_threat_model(config_path: str | None, target: str, fmt: str) -> int:
+    """Gera o threat model STRIDE do app: scan real -> achados por CWE/STRIDE + superfície descoberta.
+    Scaffold determinístico e KEYLESS; o agente de IA completa o raciocínio (as checklists)."""
+    cfg = Config.load(config_path)
+    report, _ = build(cfg).run(target)
+    tm = build_threat_model(target, tuple(report.findings))
+    print(tm_render_json(tm) if fmt == "json" else tm_render_md(tm))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="secpipe", description="Motor de seguranca operado por IA.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -142,11 +156,29 @@ def build_parser() -> argparse.ArgumentParser:
     ver.add_argument("target", nargs="?", default=".", help="diretorio (default: .)")
     ver.add_argument("--config", default=None, help="caminho do .secpipe.yml")
     ver.add_argument("--base", dest="base_ref", default="HEAD", help="ref git base do diff (default: HEAD)")
+    tm = sub.add_parser("threat-model", help="threat model STRIDE do app (scaffold keyless; o agente completa)")
+    tm.add_argument("target", nargs="?", default=".", help="diretorio alvo (default: .)")
+    tm.add_argument("--config", default=None, help="caminho do .secpipe.yml")
+    tm.add_argument("--format", dest="fmt", choices=["md", "json"], default="md",
+                    help="md (agente/humano) ou json (maquina). default: md")
     sub.add_parser("version", help="mostra a versao")
     return parser
 
 
+def _ensure_utf8_stdout() -> None:
+    """Windows: o console default (cp1252) quebra em setas/simbolos fora do Latin-1 e ABORTA o comando.
+    Forca utf-8 com fallback 'replace' (no-op no Linux/CI, onde stdout ja e utf-8)."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfig = getattr(stream, "reconfigure", None)
+        if reconfig is not None:
+            try:
+                reconfig(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):  # pragma: no cover - ambiente
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _ensure_utf8_stdout()
     args = build_parser().parse_args(argv)
     if args.command == "doctor":
         return _cmd_doctor()
@@ -166,6 +198,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_fix(args.target, args.dry_run)
     if args.command == "verify":
         return _cmd_verify(args.config, args.target, args.base_ref)
+    if args.command == "threat-model":
+        return _cmd_threat_model(args.config, args.target, args.fmt)
     if args.command == "version":
         print(__version__)
         return 0

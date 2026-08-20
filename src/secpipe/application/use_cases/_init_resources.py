@@ -82,6 +82,8 @@ para um humano, **exceto** o que as regras mandam escalar.
 - Cada achado traz `escalate: true|false` — se `true` (auth/cripto/segredo/crítico), **escale**, não corrija sozinha.
 - Antes de corrigir um CWE, `secpipe recall --cwe CWE-XXX` pode trazer um padrão que já funcionou.
 - Depois de um fix ACEITO, `secpipe remember --cwe ... --note "<padrão>"` (o PADRÃO, nunca código/segredo).
+- **Design seguro (antes/durante):** `secpipe threat-model` gera um scaffold STRIDE do app (superfície +
+  achados por categoria + checklists). É determinístico e keyless — **você completa** as checklists e mitiga.
 
 `secpipe scan` emite JSON no stdout (tool, rule_id, cwe, severity, file, line, message, fingerprint, escalate);
 o gate vai no stderr e o exit code indica PASS(0)/FAIL(1).

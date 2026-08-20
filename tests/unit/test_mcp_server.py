@@ -37,3 +37,16 @@ def test_jsonrpc_roundtrip() -> None:
     assert lines[0]["result"]["serverInfo"]["name"] == "secpipe"
     assert any(t["name"] == "secpipe_scan" for t in lines[1]["result"]["tools"])
     assert "tools" in json.loads(lines[2]["result"]["content"][0]["text"])
+
+
+def test_dispatch_threat_model(tmp_path) -> None:
+    (tmp_path / "app.py").write_text(
+        "import os\n@app.route('/x')\ndef x():\n    return os.getenv('K')\n", encoding="utf-8"
+    )
+    out = SecpipeMcpTools().dispatch("secpipe_threat_model", {"target": str(tmp_path)})
+    assert out["kind"] == "stride-threat-model"
+    assert set(out["categories"].keys()) == set("STRIDE")  # as 6 categorias S,T,R,I,D,E
+
+
+def test_threat_model_tool_is_registered() -> None:
+    assert any(t["name"] == "secpipe_threat_model" for t in TOOLS)
