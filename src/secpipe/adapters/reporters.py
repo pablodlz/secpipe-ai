@@ -6,6 +6,7 @@ import json
 
 from secpipe.domain import Report, Severity
 from secpipe.domain.abstention import escalates
+from secpipe.domain.correlation import correlate
 
 # nossa severidade -> SARIF level + security-severity numérica (convenção GitHub)
 _LEVEL = {
@@ -22,9 +23,17 @@ class JsonReporter:
     name = "json"
 
     def render(self, report: Report) -> str:
+        findings = report.findings
+        correlations = correlate(findings)
+        correlated_cwes = {c.cwe for c in correlations}
         payload = {
             "schema_version": "1",   # 1: findings ganham epss/kev opcionais (enrichment)
             "scanners_ran": report.ran,   # 0 => nada escaneado; gate verde NAO significa seguro
+            "correlations": [
+                {"cwe": c.cwe, "dast_rule": c.dast_rule, "static_refs": list(c.static_refs),
+                 "severity": c.severity.name}
+                for c in correlations
+            ],
             "results": [
                 {"tool": r.tool, "status": r.status.value, "detail": r.detail}
                 for r in report.results
@@ -42,8 +51,9 @@ class JsonReporter:
                     "escalate": escalates(f.cwe, f.severity),
                     **({"epss": f.epss} if f.epss is not None else {}),
                     **({"kev": True} if f.kev else {}),
+                    **({"correlated": True} if f.cwe in correlated_cwes else {}),
                 }
-                for f in report.findings
+                for f in findings
             ],
         }
         return json.dumps(payload, ensure_ascii=False, indent=2)
