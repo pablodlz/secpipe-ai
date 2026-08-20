@@ -21,6 +21,7 @@ class GatePolicy:
     block_severity: Severity = Severity.HIGH
     min_scanners: int = 1                                   # <1 seria verde-falso; default exige ≥1
     require_scanners: frozenset[str] = field(default_factory=frozenset)  # nomes que DEVEM ter rodado (opt-in)
+    kev_blocks: bool = True  # achado no CISA KEV (exploração ativa) bloqueia mesmo abaixo de block_severity
 
     def evaluate(self, report: Report) -> GateDecision:
         # Fail-closed: se algum scanner ERROU, não podemos provar segurança -> bloqueia.
@@ -38,6 +39,11 @@ class GatePolicy:
             missing = sorted(self.require_scanners - ran)
             if missing:
                 return GateDecision(False, f"cobertura insuficiente: exigido(s) nao rodou(aram): {', '.join(missing)}")
+        # KEV: exploração ATIVA conhecida bloqueia independentemente da severidade nominal.
+        if self.kev_blocks:
+            kev_hits = [f for f in report.findings if f.kev]
+            if kev_hits:
+                return GateDecision(False, f"{len(kev_hits)} achado(s) no CISA KEV (exploracao ativa) - bloqueado")
         blocking = [f for f in report.findings if f.severity >= self.block_severity]
         if blocking:
             worst = max(f.severity for f in blocking)

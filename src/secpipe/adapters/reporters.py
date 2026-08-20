@@ -23,7 +23,7 @@ class JsonReporter:
 
     def render(self, report: Report) -> str:
         payload = {
-            "schema_version": "0",
+            "schema_version": "1",   # 1: findings ganham epss/kev opcionais (enrichment)
             "scanners_ran": report.ran,   # 0 => nada escaneado; gate verde NAO significa seguro
             "results": [
                 {"tool": r.tool, "status": r.status.value, "detail": r.detail}
@@ -40,6 +40,8 @@ class JsonReporter:
                     "message": f.message,
                     "fingerprint": f.fingerprint,
                     "escalate": escalates(f.cwe, f.severity),
+                    **({"epss": f.epss} if f.epss is not None else {}),
+                    **({"kev": True} if f.kev else {}),
                 }
                 for f in report.findings
             ],

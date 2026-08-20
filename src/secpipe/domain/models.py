@@ -39,10 +39,13 @@ class Finding:
     file: str = ""
     line: int = 0
     cwe: str = ""         # ex.: "CWE-79"
+    epss: float | None = None  # prob. de exploração (EPSS, FIRST.org) quando enriquecido; None = sem dado
+    kev: bool = False          # está no CISA KEV (exploração ativa conhecida)? enrichment só ELEVA, nunca rebaixa
 
     @property
     def fingerprint(self) -> str:
-        """Chave determinística para deduplicação entre tools. sha256 (não é uso de segurança)."""
+        """Chave determinística para deduplicação entre tools. sha256 (não é uso de segurança).
+        NÃO inclui epss/kev (são anotações, não identidade do achado)."""
         raw = f"{self.rule_id}|{self.cwe}|{self.file}|{self.line}".encode()
         return hashlib.sha256(raw).hexdigest()
 
