@@ -2,62 +2,63 @@
 
 # 🛡️ secpipe
 
-### The zero-cost security pipeline your **AI operates itself** — so every AI-built project ships secure.
+### A esteira de segurança de custo zero que a sua **IA opera sozinha** — para todo projeto feito por IA já nascer seguro.
 
 [![CI](https://github.com/pablodlz/secpipe-ai/actions/workflows/ci-security.yml/badge.svg)](https://github.com/pablodlz/secpipe-ai/actions/workflows/ci-security.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Container](https://img.shields.io/badge/ghcr.io-secpipe--ai-2496ED?logo=docker&logoColor=white)](https://github.com/pablodlz/secpipe-ai/pkgs/container/secpipe-ai)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)](pyproject.toml)
-[![MCP ready](https://img.shields.io/badge/MCP-ready-6E56CF)](#-mcp-the-agent-native-interface)
-![Cost](https://img.shields.io/badge/cost-%240%2Fmonth-brightgreen)
+[![MCP ready](https://img.shields.io/badge/MCP-ready-6E56CF)](#-mcp--a-interface-nativa-do-agente)
+![Custo](https://img.shields.io/badge/custo-%240%2Fm%C3%AAs-brightgreen)
 
-**Language-agnostic · AI-agnostic · Keyless · Self-hosted · Composes best-of-breed free tools**
+**Agnóstico de linguagem · Agnóstico de IA · Sem chave · Self-hosted · Compõe as melhores ferramentas free**
 
 </div>
 
 ---
 
-> **AI writes code fast — and introduces vulnerabilities at scale.** secpipe makes the *same* AI that
-> writes your code **find, fix, and verify** those vulnerabilities, guided by rules it can't quietly
-> bypass. No API key. No SaaS bill. No human in the loop for the routine 80% — only for the risky 20%.
+> **A IA escreve código rápido — e injeta vulnerabilidades em escala.** O secpipe faz a *mesma* IA que
+> escreve o seu código **achar, corrigir e verificar** essas vulnerabilidades, guiada por regras que ela
+> não consegue burlar em silêncio. Sem chave de API. Sem conta paga. Sem humano no meio nos 80% de rotina —
+> só nos 20% arriscados.
 
-secpipe is a **DevSecOps engine designed to be operated by an AI agent** (Claude Code, Cursor, Copilot, Aider…).
-You apply it to a project *before* development starts; from then on, the project's AI develops **secure by
-default** — scanning, fixing, and verifying its own work behind guardrails enforced by your git hooks and CI,
-not by the AI's goodwill.
+O secpipe é um **motor de DevSecOps projetado para ser operado por um agente de IA** (Claude Code, Cursor,
+Copilot, Aider…). Você o aplica a um projeto *antes* de começar o desenvolvimento; a partir daí, a IA do
+projeto desenvolve **seguro por padrão** — escaneando, corrigindo e verificando o próprio trabalho atrás de
+guardrails impostos pelos seus git hooks e CI, não pela boa vontade da IA.
 
-It's **free by construction** (only free/open-source scanners), **runs anywhere** (container, any CI, or local),
-and works with **any language** and **any AI**.
+É **grátis por construção** (só scanners free/open-source), **roda em qualquer lugar** (container, qualquer CI
+ou local) e funciona com **qualquer linguagem** e **qualquer IA**.
 
 ---
 
-## ✨ Why secpipe is different
+## ✨ Por que o secpipe é diferente
 
 |  | **secpipe** | Copilot Autofix | Snyk / Mobb / Semgrep Assistant |
 | --- | :---: | :---: | :---: |
-| **Cost** | **$0, self-hosted** | free for OSS only | paid / metered |
-| **Needs its own AI API key** | **No** — the agent already runs | — | Yes (account) |
-| **Fixes findings from any scanner** | **Yes** (SARIF+CWE) | CodeQL only | varies |
-| **Operated by the AI itself (MCP-native)** | **Yes** | No | No |
-| **Verifier that doesn't trust the AI's word** | **Deterministic** (scanner + tests + no-suppression) | — | — |
-| **Enforcement the AI can't bypass** | **git hooks + CI** | — | — |
-| **Runs offline / no external service** | **Yes** | No (cloud) | No |
+| **Custo** | **US$ 0, self-hosted** | grátis só p/ OSS | pago / por consumo |
+| **Precisa de chave de IA própria** | **Não** — o agente já roda | — | Sim (conta) |
+| **Corrige achado de qualquer scanner** | **Sim** (SARIF+CWE) | só CodeQL | varia |
+| **Operado pela própria IA (nativo em MCP)** | **Sim** | Não | Não |
+| **Verificador que não confia na palavra da IA** | **Determinístico** (scanner + testes + anti-supressão) | — | — |
+| **Imposição que a IA não burla** | **git hooks + CI** | — | — |
+| **Roda offline / sem serviço externo** | **Sim** | Não (nuvem) | Não |
 
-The core insight: **the operator is the AI.** So secpipe doesn't embed an LLM (and needs no key) — it provides
-the **findings, the deterministic judge, and the guardrails**; the AI agent that's already running does the fixing.
+A sacada central: **o operador é a IA.** Por isso o secpipe não embute um LLM (e não precisa de chave) — ele
+fornece os **achados, o juiz determinístico e os guardrails**; o agente de IA que já está rodando faz a correção.
 
 ---
 
-## 🔁 How it works — the Detect → Repair → Verify loop
+## 🔁 Como funciona — o loop Detect → Repair → Verify
 
 ```mermaid
 flowchart LR
-    A["secpipe scan<br/><b>DETECT</b>"] --> B{"blocking<br/>findings?"}
-    B -- "no" --> OK(["gate PASS ✓"])
-    B -- "sensitive<br/>(auth · crypto · secret)" --> ESC["escalate → human"]
-    B -- "yes" --> FIX["the AGENT fixes<br/><b>REPAIR · keyless</b>"]
-    FIX --> V["secpipe verify<br/><b>VERIFY · deterministic</b>"]
-    V -- "REJECT<br/>(with actionable reasons)" --> FIX
+    A["secpipe scan<br/><b>DETECT</b>"] --> B{"achados<br/>bloqueantes?"}
+    B -- "não" --> OK(["gate PASS ✓"])
+    B -- "sensível<br/>(auth · cripto · segredo)" --> ESC["escala → humano"]
+    B -- "sim" --> FIX["o AGENTE corrige<br/><b>REPAIR · sem chave</b>"]
+    FIX --> V["secpipe verify<br/><b>VERIFY · determinístico</b>"]
+    V -- "REJECT<br/>(com motivos acionáveis)" --> FIX
     V -- "ACCEPT" --> OK
     classDef ok fill:#e6f7ef,stroke:#1FA971;
     classDef esc fill:#fcefdc,stroke:#e09830;
@@ -65,315 +66,323 @@ flowchart LR
     class ESC esc;
 ```
 
-- **DETECT** — `secpipe scan` runs the scanners, normalizes every result into one contract (`cwe`, `severity`,
-  `file`, `line`, `fingerprint`, `escalate`), dedups, and applies a **fail-closed gate**.
-- **REPAIR** — the AI agent reads the structured findings and fixes them with its own model (or `secpipe fix`
-  applies deterministic codemods for the mechanical ones). **No key needed.**
-- **VERIFY** — `secpipe verify` is the **deterministic, independent judge**: it accepts a fix *only* if the
-  scanner no longer flags it, the diff adds **no suppression**, and the tests pass. The *machine* approves — never
-  the agent's word. Anything sensitive is **escalated**, not auto-fixed.
+- **DETECT** — `secpipe scan` roda os scanners, normaliza cada resultado num contrato único (`cwe`, `severity`,
+  `file`, `line`, `fingerprint`, `escalate`), dedup, e aplica um **gate fail-closed**.
+- **REPAIR** — o agente de IA lê os achados estruturados e corrige com o próprio modelo (ou `secpipe fix` aplica
+  codemods determinísticos nos mecânicos). **Sem chave.**
+- **VERIFY** — `secpipe verify` é o **juiz determinístico e independente**: só aceita um fix se o scanner deixou
+  de apontar, o diff **não adiciona supressão** e os testes passam. Quem aprova é a *máquina* — nunca a palavra
+  do agente. O que for sensível é **escalado**, não corrigido automaticamente.
 
 ---
 
-## 🚀 Quickstart
+## 🚀 Início rápido
 
 ```bash
-# 1. Install the engine + free scanners (Windows / Linux / macOS)
-python install.py            # or: ./setup.sh  |  .\setup.ps1
+# 1. Instale o motor + scanners free (Windows / Linux / macOS)
+python install.py            # ou: ./setup.sh  |  .\setup.ps1
 
-# 2. Adopt secpipe in any project (one command)
-secpipe init                 # writes .secpipe.yml + AGENTS.md + git hook + CI workflow + .mcp.json
+# 2. Adote o secpipe em qualquer projeto (um comando)
+secpipe init                 # grava .secpipe.yml + AGENTS.md + git hook + workflow de CI + .mcp.json
 
-# 3. The loop
-secpipe scan .               # DETECT — JSON findings for the AI (or --format sarif for GitHub code scanning)
-secpipe fix .                # REPAIR — apply deterministic codemods (the rest is the agent's job)
-secpipe verify .             # VERIFY — deterministic gate + no-suppression + tests
+# 3. O loop
+secpipe scan .               # DETECT — achados em JSON para a IA (ou --format sarif p/ o code scanning)
+secpipe fix .                # REPAIR — aplica codemods determinísticos (o resto é com o agente)
+secpipe verify .             # VERIFY — gate determinístico + anti-supressão + testes
 ```
 
-Prefer zero install? The published container has **everything** baked in:
+Prefere zero instalação? A imagem publicada já traz **tudo** embutido:
 
 ```bash
 docker run --rm -v "$PWD:/work" ghcr.io/pablodlz/secpipe-ai:latest scan /work
 ```
 
-`secpipe init` is **plug-and-play**: zero-config works out of the box with strong, secure defaults — the
-`.secpipe.yml` is optional and only there to tune, never to weaken.
+`secpipe init` é **plug-and-play**: zero-config funciona de cara com defaults fortes e seguros — o
+`.secpipe.yml` é opcional e existe só para tunar, nunca para enfraquecer.
 
 ---
 
-## 📋 Step-by-step — add secpipe to *your* project
+## 📋 Passo a passo — adicione o secpipe ao *seu* projeto
 
-> **Who does what.** *You* wire secpipe in **once** (a handful of generated files, one commit). From then on
-> **your AI agent operates it** — it reads `AGENTS.md`, runs the loop, and fixes findings. **No API key, ever:**
-> the operator is the agent you already use (Claude Code, Cursor, Copilot…), not a paid service.
+> **Quem faz o quê.** *Você* conecta o secpipe **uma vez** (alguns arquivos gerados, um commit). Daí em diante
+> **o seu agente de IA opera** — ele lê o `AGENTS.md`, roda o loop e corrige os achados. **Nunca precisa de chave
+> de API:** o operador é o agente que você já usa (Claude Code, Cursor, Copilot…), não um serviço pago.
 
-**Prerequisites:** a Git repository (GitHub recommended) and either **Docker** *or* **Python 3.11+**.
+**Pré-requisitos:** um repositório Git (GitHub recomendado) e **Docker** *ou* **Python 3.11+**.
 
-### 1 · Install the engine
+### 1 · Instale o motor
 
-Pick one path:
+Escolha um caminho:
 
 ```bash
-# A) Zero install — the published image has all 5 scanners baked in (best for CI)
+# A) Zero instalação — a imagem publicada traz todos os scanners embutidos (melhor p/ CI)
 docker pull ghcr.io/pablodlz/secpipe-ai:latest
 
-# B) Local CLI + scanners — to run the loop on your machine
+# B) CLI + scanners locais — para rodar o loop na sua máquina
 pip install git+https://github.com/pablodlz/secpipe-ai.git
-python install.py     # installs the free scanners  (or ./setup.sh | .\setup.ps1)
-secpipe doctor        # shows which scanners are on your PATH
+python install.py     # instala os scanners free  (ou ./setup.sh | .\setup.ps1)
+secpipe doctor        # mostra quais scanners estão no seu PATH
 ```
 
-### 2 · Adopt it — one command at your repo root
+### 2 · Adote — um comando na raiz do repo
 
 ```bash
 secpipe init
 ```
 
-It detects your languages and writes these files (idempotent — it **never** clobbers what you already have):
+Ele detecta as suas linguagens e grava estes arquivos (idempotente — **nunca** sobrescreve o que você já tem):
 
-| File | What it's for | Commit it? |
+| Arquivo | Para quê | Commitar? |
 | --- | --- | --- |
-| `.secpipe.yml` | your scanner list + gate — **tune-only**, it can't weaken the defaults | ✅ |
-| `.github/workflows/security.yml` | the CI gate — calls the reusable engine at `@v1` | ✅ |
-| `AGENTS.md` | the contract your AI reads **before writing code** | ✅ |
-| `.mcp.json` | wires the MCP server so the agent calls secpipe natively | ✅ |
-| `CLAUDE.md` | shim pointing Claude Code at `AGENTS.md` | ✅ |
-| pre-commit hook | anti-suppression guardrail — **merged into** your existing `.pre-commit-config.yaml` (or a native git hook) | ✅ |
+| `.secpipe.yml` | sua lista de scanners + gate — **só para tunar**, não enfraquece os defaults | ✅ |
+| `.github/workflows/security.yml` | o gate de CI — chama o motor reutilizável em `@v1` | ✅ |
+| `AGENTS.md` | o contrato que a sua IA lê **antes de escrever código** | ✅ |
+| `.mcp.json` | conecta o servidor MCP para o agente chamar o secpipe nativamente | ✅ |
+| `CLAUDE.md` | shim que aponta o Claude Code para o `AGENTS.md` | ✅ |
+| hook de pre-commit | guardrail anti-supressão — **integrado** ao seu `.pre-commit-config.yaml` (ou um git hook nativo) | ✅ |
 
-### 3 · Commit & push — the gate goes live
+### 3 · Commit & push — o gate entra no ar
 
 ```bash
 git add .secpipe.yml .github/ AGENTS.md .mcp.json CLAUDE.md .pre-commit-config.yaml
-git commit -m "chore(security): adopt secpipe"
+git commit -m "chore(security): adota o secpipe"
 git push
 ```
 
-On every push/PR, `security.yml` runs `docker run …/secpipe-ai:latest scan` — all scanners, straight from the
-**public** image, so **your CI needs no login or secret**. Any **HIGH/CRITICAL** finding **fails the build**
-(fail-closed). There is nothing else to configure.
+A cada push/PR, o `security.yml` roda `docker run …/secpipe-ai:latest scan` — todos os scanners, direto da
+imagem **pública**, então o **seu CI não precisa de login nem segredo**. Qualquer achado **HIGH/CRITICAL**
+**reprova o build** (fail-closed). Não há mais nada para configurar.
 
-### 4 · Let your AI operate the loop
+### 4 · Deixe a sua IA operar o loop
 
-While you build, your agent runs **Detect → Repair → Verify** (locally, or over MCP):
+Enquanto você desenvolve, o agente roda **Detect → Repair → Verify** (localmente ou via MCP):
 
 ```bash
-secpipe scan .     # DETECT  — CWE-tagged JSON findings the AI consumes
-secpipe fix .      # REPAIR  — deterministic codemods; the agent fixes the rest
-secpipe verify .   # VERIFY  — deterministic judge: gate + no-suppression + your tests
+secpipe scan .     # DETECT  — achados JSON (com CWE) que a IA consome
+secpipe fix .      # REPAIR  — codemods determinísticos; o agente corrige o resto
+secpipe verify .   # VERIFY  — juiz determinístico: gate + anti-supressão + seus testes
 ```
 
-The agent **cannot** silence a finding to go green (the guardrail below blocks it), and sensitive classes
-(auth / crypto / secrets) are **escalated to you**, never auto-fixed.
+O agente **não consegue** silenciar um achado para ficar verde (o guardrail abaixo bloqueia), e classes
+sensíveis (auth / cripto / segredos) são **escaladas para você**, nunca corrigidas sozinhas.
 
-### 5 · Pick your adoption model *(optional)*
+### 5 · Escolha o modelo de adoção *(opcional)*
 
-- **Referenced (default)** — `security.yml` pins `…/secpipe.reusable.yml@v1`; bump the tag to get engine
-  updates. Best for most projects.
-- **Template / vendored** — use-as-template, or just `docker run …` in any CI (GitLab, Jenkins…). Best when
-  you can't reference across repos.
+- **Referenciado (padrão)** — o `security.yml` pina `…/secpipe.reusable.yml@v1`; bump a tag para receber
+  updates do motor. Melhor para a maioria.
+- **Template / vendorizado** — use-as-template, ou só `docker run …` em qualquer CI (GitLab, Jenkins…). Melhor
+  quando você não pode referenciar entre repos.
 
-> **Net human effort:** one `secpipe init` + one commit. Everything after that is the agent and the gate.
-> Verify anytime with `secpipe doctor` and your repo's **Actions** tab.
+> **Esforço humano líquido:** um `secpipe init` + um commit. Todo o resto é o agente e o gate. Confira quando
+> quiser com `secpipe doctor` e a aba **Actions** do seu repo.
 
 ---
 
-## 🧩 Architecture — one engine, three surfaces
+## 🧩 Arquitetura — um motor, três superfícies
 
-secpipe is a small, pure-domain core (Clean + Hexagonal) with swappable adapters and **three thin entrypoints**.
-CI/CD speaks the CLI/container; the AI agent speaks **MCP**.
+O secpipe é um núcleo pequeno e de domínio puro (Clean + Hexagonal) com adapters trocáveis e **três entrypoints
+finos**. O CI/CD fala CLI/container; o agente de IA fala **MCP**.
 
 ```mermaid
 flowchart TB
-    subgraph S["Surfaces (driving adapters)"]
+    subgraph S["Superfícies (driving adapters)"]
         CLI["🖥️ CLI<br/><code>secpipe …</code>"]
-        MCP["🤖 MCP server<br/><code>secpipe mcp</code>"]
+        MCP["🤖 servidor MCP<br/><code>secpipe mcp</code>"]
         IMG["📦 Container /<br/>GitHub Action"]
     end
-    S --> ENG["<b>secpipe engine</b><br/>(pure domain + application)"]
-    ENG --> SCAN["Scanners (free)<br/>gitleaks · semgrep · trivy<br/>bandit · pip-audit"]
-    ENG --> NORM["Normalize →<br/><b>SARIF + CWE</b> contract"]
-    ENG --> GATE["Fail-closed gate<br/>+ abstention (escalate)"]
-    ENG --> VER["Deterministic verify<br/>+ fix memory"]
-    NORM --> OUT["JSON for the AI ·<br/>SARIF for code scanning"]
+    S --> ENG["<b>motor secpipe</b><br/>(domínio + aplicação puros)"]
+    ENG --> SCAN["Scanners (free)<br/>gitleaks · semgrep · trivy · bandit<br/>checkov · hadolint · gosec · osv · pip/npm-audit · ZAP"]
+    ENG --> NORM["Normaliza →<br/>contrato <b>SARIF + CWE</b>"]
+    ENG --> GATE["Gate fail-closed<br/>+ abstention (escala)"]
+    ENG --> VER["Verify determinístico<br/>+ memória de fixes"]
+    NORM --> OUT["JSON para a IA ·<br/>SARIF para o code scanning"]
     classDef eng fill:#efecfb,stroke:#6E56CF;
     class ENG eng;
 ```
 
-**Composes best-of-breed, doesn't reinvent.** The scanners, remediation (Codemodder), and supply-chain checks
-(OpenSSF Scorecard, StepSecurity Harden-Runner) are proven free tools. secpipe's value is the **glue**: one
-AI-friendly contract, the deterministic verifier, the guardrails, and the agent-native interface.
+**Compõe o melhor de cada, não reinventa.** Os scanners, a remediação (Codemodder) e as checagens de
+supply-chain (OpenSSF Scorecard, StepSecurity Harden-Runner) são ferramentas free comprovadas. O valor do
+secpipe é a **cola**: um contrato amigável à IA, o verificador determinístico, os guardrails e a interface
+nativa do agente.
 
 ---
 
-## 🔒 The guardrail: *who guards the guard?*
+## 🔒 O guardrail: *quem guarda o guarda?*
 
-If the same AI writes the code, runs the gate, **and** fixes findings, what stops it from just… silencing a
-finding to go green? This is the hardest problem in AI-operated security — and secpipe answers it by separating
-**orientation** (advice the agent could ignore) from **enforcement** (structural, agent-independent):
+Se a mesma IA escreve o código, roda o gate **e** corrige os achados, o que a impede de simplesmente… silenciar
+um achado para ficar verde? Esse é o problema mais difícil da segurança operada por IA — e o secpipe o resolve
+separando **orientação** (conselho que o agente pode ignorar) de **imposição** (estrutural, independente do agente):
 
 ```mermaid
 flowchart LR
-    subgraph O["🧭 Orientation — the agent may ignore"]
-        AG["AGENTS.md<br/>(security context)"]
-        MT["MCP tools"]
+    subgraph O["🧭 Orientação — o agente pode ignorar"]
+        AG["AGENTS.md<br/>(contexto de segurança)"]
+        MT["tools MCP"]
     end
-    subgraph E["⛔ Enforcement — agent-independent"]
-        HK["git pre-commit hook<br/>blocks # nosec / # noqa / secrets"]
-        CI["CI + fail-closed gate<br/>required status checks"]
+    subgraph E["⛔ Imposição — independente do agente"]
+        HK["git pre-commit hook<br/>bloqueia supressores / segredos"]
+        CI["CI + gate fail-closed<br/>status checks obrigatórios"]
     end
-    DEV["AI develops"]
-    AG -.guides.-> DEV
-    MT -.guides.-> DEV
-    DEV --> HK --> CI --> MAIN[("🔐 protected main")]
+    DEV["a IA desenvolve"]
+    AG -.orienta.-> DEV
+    MT -.orienta.-> DEV
+    DEV --> HK --> CI --> MAIN[("🔐 main protegida")]
     classDef enf fill:#fbe4e1,stroke:#c0392b;
     class HK,CI enf;
 ```
 
-- **A fix is never "make CI green."** The pre-commit hook **blocks** any diff that adds `# nosec` / `# noqa` /
-  `nosemgrep` or a staged secret. The gate is **fail-closed** (unknown/error ⇒ block).
-- **The policy lives in the engine**, not in the consumer repo — the AI can't rewrite the ruler that judges it.
-- **The verifier is deterministic** — objective evidence (scanner + tests), not the model's self-assessment.
+- **Um fix nunca é "deixar o CI verde".** O pre-commit hook **bloqueia** qualquer diff que adicione supressores
+  de linter ou um segredo staged. O gate é **fail-closed** (desconhecido/erro ⇒ bloqueia).
+- **A política mora no motor**, não no repo do consumidor — a IA não reescreve a régua que a julga (e o
+  `secpipe policy-check` reprova se ela tentar enfraquecer).
+- **O verificador é determinístico** — evidência objetiva (scanner + testes), não a auto-avaliação do modelo.
 
-*This lesson was learned the hard way in offensive security (a guard that taught its own bypass); secpipe bakes
-the fix in from commit zero.*
+*Essa lição foi aprendida na marra na segurança ofensiva (um guarda que ensinava o próprio bypass); o secpipe
+embute a correção desde o commit zero.*
 
 ---
 
-## 🤖 MCP — the agent-native interface
+## 🤖 MCP — a interface nativa do agente
 
-`secpipe init` registers an **MCP server** (`.mcp.json`). Any MCP-capable agent gets first-class tools and drives
-the loop with **structured JSON**, no shell parsing:
+`secpipe init` registra um **servidor MCP** (`.mcp.json`). Qualquer agente compatível com MCP ganha tools de
+primeira classe e conduz o loop com **JSON estruturado**, sem parsear shell:
 
-| Tool | Purpose |
+| Tool | Para quê |
 | --- | --- |
-| `secpipe_scan` | DETECT — findings + gate verdict |
-| `secpipe_fix` | REPAIR — deterministic codemods |
-| `secpipe_verify` | VERIFY — deterministic judge |
-| `secpipe_recall` / `secpipe_remember` | verified-fix memory (patterns, never code) |
-| `secpipe_doctor` | tool availability |
-| `secpipe_threat_model` | STRIDE threat-model scaffold (keyless) |
+| `secpipe_scan` | DETECT — achados + veredito do gate |
+| `secpipe_fix` | REPAIR — codemods determinísticos |
+| `secpipe_verify` | VERIFY — juiz determinístico |
+| `secpipe_recall` / `secpipe_remember` | memória de fixes verificados (padrões, nunca código) |
+| `secpipe_doctor` | disponibilidade das ferramentas |
+| `secpipe_threat_model` | scaffold de threat model STRIDE (keyless) |
 | `secpipe_sbom` | Software Bill of Materials (CycloneDX/SPDX) |
 
-The server is **JSON-RPC 2.0 over stdio, stdlib-only** (zero external dependency — a smaller supply-chain surface,
-fitting for a security tool) and **local** by design. It's the *ergonomic* layer; enforcement stays in the hooks + CI.
+O servidor é **JSON-RPC 2.0 sobre stdio, só stdlib** (zero dependência externa — menor superfície de
+supply-chain, apropriado para uma ferramenta de segurança) e **local** por design. É a camada de *ergonomia*;
+a imposição fica nos hooks + CI.
 
 ---
 
-## 🛠️ Commands
+## 🛠️ Comandos
 
-| Command | What it does |
+| Comando | O que faz |
 | --- | --- |
-| `secpipe init` | Adopt secpipe in a project (config + `AGENTS.md` + hook + workflow + `.mcp.json`) |
-| `secpipe scan [--format json\|sarif\|html\|md\|github] [--enrich] [--diff-base REF] [--reachability]` | Run scanners, normalize, apply the gate |
-| `secpipe fix [--dry-run]` | Apply deterministic codemods |
-| `secpipe verify [--base REF]` | Deterministic judge: gate + no-suppression + tests |
-| `secpipe autofix --headless` | **Opt-in, keyed** AI PR-bot: fix → deterministic verify → open PR (never auto-merge) |
-| `secpipe threat-model [--format md\|json\|threat-dragon]` | STRIDE threat-model of your app (keyless; framework-aware) |
-| `secpipe import <file.sarif>` · `dast-import <zap.json>` | Normalize any external SARIF / ZAP report into the gate |
-| `secpipe image <ref>` · `sbom [--format cyclonedx\|spdx]` · `badge` | Container-image scan · SBOM · SVG badge |
-| `secpipe report --defectdojo` | Export findings to DefectDojo (opt-in, keyed) |
-| `secpipe config-validate` · `policy-lock` · `policy-check` · `waiver-list` | Policy tooling (anti-tamper, exceptions) |
-| `secpipe hook` · `mcp` · `remember`/`recall` · `doctor` · `version` | Enforcement · MCP server · fix-memory · tools · version |
+| `secpipe init` | Adota o secpipe num projeto (config + `AGENTS.md` + hook + workflow + `.mcp.json`) |
+| `secpipe scan [--format json\|sarif\|html\|md\|github] [--enrich] [--diff-base REF] [--reachability]` | Roda os scanners, normaliza, aplica o gate |
+| `secpipe fix [--dry-run]` | Aplica codemods determinísticos |
+| `secpipe verify [--base REF]` | Juiz determinístico: gate + anti-supressão + testes |
+| `secpipe autofix --headless` | PR-bot de IA **opt-in, com chave**: corrige → verify determinístico → abre PR (nunca auto-merge) |
+| `secpipe threat-model [--format md\|json\|threat-dragon]` | Threat model STRIDE do seu app (keyless; ciente de framework) |
+| `secpipe import <file.sarif>` · `dast-import <zap.json>` | Normaliza qualquer SARIF externo / relatório ZAP no gate |
+| `secpipe image <ref>` · `sbom [--format cyclonedx\|spdx]` · `badge` | Scan de imagem · SBOM · badge SVG |
+| `secpipe report --defectdojo` | Exporta os achados para o DefectDojo (opt-in, com chave) |
+| `secpipe config-validate` · `policy-lock` · `policy-check` · `waiver-list` | Ferramentas de política (anti-adulteração, exceções) |
+| `secpipe hook` · `mcp` · `remember`/`recall` · `doctor` · `version` | Imposição · servidor MCP · memória de fixes · ferramentas · versão |
 
 ---
 
-## 🧰 What's inside (all free)
+## 🧰 O que tem dentro (tudo free)
 
-| Dimension | Tools / capabilities composed |
+| Dimensão | Ferramentas / capacidades compostas |
 | --- | --- |
 | **SAST** | Semgrep CE · Bandit (Python) · **gosec** (Go) |
-| **SCA** | Trivy · pip-audit · **npm-audit** · **osv-scanner** (multi-ecosystem) |
-| **Secrets** | gitleaks (filesystem **+ full git history**) |
+| **SCA** | Trivy · pip-audit · **npm-audit** · **osv-scanner** (multi-ecossistema) |
+| **Segredos** | gitleaks (filesystem **+ histórico git completo**) |
 | **IaC / containers** | Trivy · **Checkov** (Terraform/K8s/CFN) · **hadolint** (Dockerfile) · **`trivy image`** |
-| **DAST** (opt-in) | OWASP ZAP — **baseline / full / authenticated** · DAST↔SAST correlation |
-| **Malicious deps** | **typosquat · dependency-confusion · install-hook** (offline heuristic) |
-| **License** | SPDX **deny/allow** policy (via Trivy) |
-| **Prioritization** | **EPSS + CISA KEV** (KEV blocks) · reachability-lite · triage hints |
-| **Threat modeling** | STRIDE scaffold, keyless · **framework-aware** · **Threat Dragon** export |
-| **Remediation** | Codemodder (deterministic) · **headless AI PR-bot** (opt-in, verified) |
-| **Policy engine** | fail-closed **coverage gate** · **policy-as-code** · **waivers** · **diff-scope** · **gate-integrity lock** |
-| **Reporting** | JSON · SARIF · HTML · Markdown · GitHub annotations · badge · DefectDojo |
-| **Supply-chain (engine)** | **SBOM (CycloneDX)** · **cosign keyless signing** · **SLSA provenance** · SHA-pinned actions · OpenSSF Scorecard · Harden-Runner · Dependabot |
+| **DAST** (opt-in) | OWASP ZAP — **baseline / full / autenticado** · correlação DAST↔SAST |
+| **Dependências maliciosas** | **typosquat · dependency-confusion · install-hook** (heurística offline) |
+| **Licenças** | política SPDX **deny/allow** (via Trivy) |
+| **Priorização** | **EPSS + CISA KEV** (KEV bloqueia) · reachability-lite · triage hints |
+| **Threat modeling** | scaffold STRIDE, keyless · **ciente de framework** · export **Threat Dragon** |
+| **Remediação** | Codemodder (determinístico) · **PR-bot de IA headless** (opt-in, verificado) |
+| **Motor de política** | **coverage gate** fail-closed · **policy-as-code** · **waivers** · **diff-scope** · **gate-integrity lock** |
+| **Relatórios** | JSON · SARIF · HTML · Markdown · anotações do GitHub · badge · DefectDojo |
+| **Supply-chain (motor)** | **SBOM (CycloneDX)** · **assinatura cosign keyless** · **provenance SLSA** · actions pinadas por SHA · OpenSSF Scorecard · Harden-Runner · Dependabot |
 
-Missing tools simply `skip` (they never break the run); a scanner that **errors** trips the **fail-closed** gate.
-The published image bundles all scanners, is **signed** (keyless), and the reusable workflow **pins it by digest**.
+Ferramentas ausentes simplesmente `skip` (nunca quebram o run); um scanner que **erra** dispara o gate
+**fail-closed**. A imagem publicada traz todos os scanners, é **assinada** (keyless) e o workflow reutilizável a
+**pina por digest**.
 
 ---
 
-## 📥 Adoption models — GitHub-first, with a fallback
+## 📥 Modelos de adoção — GitHub-first, com um fallback
 
 ```mermaid
 flowchart LR
-    ENG["secpipe engine<br/>(versioned image)"]
-    ENG --> A["<b>Referenced (default)</b><br/>reusable GitHub workflow<br/>@vX → gets updates"]
-    ENG --> B["<b>Template / local</b><br/>use-as-template or<br/>docker run · any CI"]
+    ENG["motor secpipe<br/>(imagem versionada)"]
+    ENG --> A["<b>Referenciado (padrão)</b><br/>workflow reutilizável do GitHub<br/>@vX → recebe updates"]
+    ENG --> B["<b>Template / local</b><br/>use-as-template ou<br/>docker run · qualquer CI"]
 ```
 
-Both modes consume the **same versioned engine** — you adapt only a tiny `.secpipe.yml` + a thin wrapper, never
-the logic. That's how secpipe stays reusable **without drift**.
+Os dois modos consomem o **mesmo motor versionado** — você adapta só um `.secpipe.yml` mínimo + um wrapper fino,
+nunca a lógica. É assim que o secpipe se mantém reutilizável **sem drift**.
 
 ---
 
-## 🛡️ Security posture (it eats its own dog food)
+## 🛡️ Postura de segurança (ele come a própria comida de cachorro)
 
-secpipe's own repository is its **first consumer**: every push runs the pipeline on itself.
+O próprio repositório do secpipe é seu **primeiro consumidor**: todo push roda a esteira nele mesmo.
 
-- **Fail-closed everywhere** · secrets never committed (gitleaks in CI + pre-commit)
-- **Supply-chain hardened** · all GitHub Actions **pinned by commit SHA** · container binaries verified by **SHA-256**
-- **OpenSSF Scorecard** + **Harden-Runner** (egress monitoring) + **Dependabot** · `main` is branch-protected
-- **Strict quality gate** on every change · Ruff (incl. Bandit rules) + mypy `--strict` + Bandit + tests
+- **Fail-closed em tudo** · segredos nunca commitados (gitleaks no CI + pre-commit)
+- **Supply-chain endurecida** · todas as GitHub Actions **pinadas por SHA de commit** · binários da imagem
+  verificados por **SHA-256** · imagem **assinada** (cosign keyless) + **SBOM** + **provenance SLSA**
+- **OpenSSF Scorecard** + **Harden-Runner** (monitoramento de egress) + **Dependabot** · `main` protegida
+- **Gate de qualidade estrito** em toda mudança · Ruff (inclui regras do Bandit) + mypy `--strict` + Bandit + testes
 
-See [`SECURITY.md`](SECURITY.md) and the threat model in [`docs/specs/03-security.md`](docs/specs/03-security.md).
+Veja o [`SECURITY.md`](SECURITY.md) e o threat model em [`docs/specs/03-security.md`](docs/specs/03-security.md).
 
 ---
 
 ## 📈 Status & roadmap
 
-**Roadmap complete (v0.6.0):** **8+ scanners** (SAST/SCA/secrets/IaC/DAST/malicious-deps/license/image) ·
-**EPSS + KEV** prioritization · **STRIDE threat-model** (framework-aware + Threat Dragon) · **keyless
-Detect→Repair→Verify** + **headless AI PR-bot** (opt-in) · full **policy engine** (coverage-gate · policy-as-code ·
-waivers · diff-scope · gate-integrity lock) · reporters (JSON/SARIF/HTML/MD/badge/annotations) · **DefectDojo**
-export · **SBOM + cosign keyless signing + SLSA provenance** · MCP server · **signed, digest-pinned** image · green CI.
+**Roadmap completo (v0.6.0):** **8+ scanners** (SAST/SCA/segredos/IaC/DAST/deps-maliciosas/licença/imagem) ·
+priorização **EPSS + KEV** · **threat model STRIDE** (ciente de framework + Threat Dragon) · **Detect→Repair→Verify
+keyless** + **PR-bot de IA headless** (opt-in) · **motor de política** completo (coverage-gate · policy-as-code ·
+waivers · diff-scope · gate-integrity lock) · relatórios (JSON/SARIF/HTML/MD/badge/anotações) · export **DefectDojo**
+· **SBOM + assinatura cosign keyless + provenance SLSA** · servidor MCP · imagem **assinada e pinada por digest** · CI verde.
 
 ```mermaid
 flowchart LR
-    P0["Phase 0<br/>Foundation ✅"] --> P1["Phase 1<br/>Scan engine ✅"] --> P2["Phase 2<br/>Adoption ✅"] --> P3["Phase 3<br/>Auto-fix DRV ✅"] --> P4["Phase 4<br/>Full roadmap ✅"]
+    P0["Fase 0<br/>Fundação ✅"] --> P1["Fase 1<br/>Motor de scan ✅"] --> P2["Fase 2<br/>Adoção ✅"] --> P3["Fase 3<br/>Auto-fix DRV ✅"] --> P4["Fase 4<br/>Roadmap completo ✅"]
 ```
 
-Full plan and design specs live in [`docs/specs/`](docs/specs/) (foundation-to-features, incl. the strategies
-distilled from prior art) and the decisions in [`docs/adr/`](docs/adr/).
+O plano completo e as specs de design ficam em [`docs/specs/`](docs/specs/) (da fundação às features, incl. as
+estratégias destiladas de prior art) e as decisões em [`docs/adr/`](docs/adr/).
 
 ---
 
 ## ❓ FAQ
 
-**Do I need an OpenAI/Anthropic API key?** No. The AI operating your project already has model access — *it*
-does the fixing. secpipe provides the findings, the deterministic judge, and the guardrails. (A headless
-"PR-bot" mode that calls an LLM itself is an optional future add-on — that one would need a key.)
+**Preciso de uma chave de API OpenAI/Anthropic?** Não. A IA que opera o seu projeto já tem acesso a modelo — é
+*ela* que corrige. O secpipe fornece os achados, o juiz determinístico e os guardrails. (Existe um modo **PR-bot
+headless** opcional que chama um LLM sozinho — esse, sim, precisa de chave; é **opt-in e default-off**.)
 
-**Which languages?** Any. The engine runs as a container; the scanners are multi-language. Python-specific
-scanners (Bandit, pip-audit) auto-enable when Python is detected.
+**Quais linguagens?** Qualquer uma. O motor roda como container; os scanners são multi-linguagem. Os scanners
+específicos de Python (Bandit, pip-audit) auto-habilitam quando Python é detectado; checkov/hadolint quando há
+IaC; gosec para Go; npm-audit para JS.
 
-**Which AI agents?** Any. `AGENTS.md` is the neutral standard (with optional shims for Claude/Cursor/Copilot),
-and the MCP server works with any MCP-capable agent. Crucially, enforcement (hooks + CI) is **agent-independent**.
+**Quais agentes de IA?** Qualquer um. O `AGENTS.md` é o padrão neutro (com shims opcionais para
+Claude/Cursor/Copilot), e o servidor MCP funciona com qualquer agente compatível com MCP. E o mais importante: a
+imposição (hooks + CI) é **independente do agente**.
 
-**Is it really free?** Yes — only free/OSS scanners, self-hosted, no metering. `semgrep`/`codemodder` don't run
-natively on Windows (they run in the Linux container/CI); everything else runs on Windows too.
+**É realmente free?** Sim — só scanners free/OSS, self-hosted, sem metering. `semgrep`/`codemodder` não rodam
+nativo no Windows (rodam no container/CI Linux); todo o resto roda no Windows também.
 
-**Can it just silence findings to pass?** No — that's the whole design. Suppression is blocked at commit time,
-the policy isn't editable by the consumer, and the verifier is deterministic.
+**Ele consegue só silenciar achados para passar?** Não — esse é o design inteiro. Supressão é bloqueada no
+commit, a política não é editável pelo consumidor (`policy-lock`), e o verificador é determinístico.
 
 ---
 
-## 🤝 Contributing & License
+## 🤝 Contribuindo & Licença
 
-Contributions are welcome — issues and PRs. All changes go through the same green gate secpipe applies to
-everything else.
+Contribuições são bem-vindas — issues e PRs. Toda mudança passa pelo mesmo gate verde que o secpipe aplica a
+todo o resto.
 
-Licensed under **[Apache-2.0](LICENSE)** — permissive, with an explicit patent grant (fitting for security tooling).
+Licenciado sob **[Apache-2.0](LICENSE)** — permissiva, com concessão explícita de patente (apropriado para
+ferramenta de segurança).
 
 <div align="center">
 
-*Built to be the best zero-cost security pipeline on the market — operated by AI, for AI-built software.*
+*Feito para ser a melhor esteira de segurança de custo zero do mercado — operada por IA, para software feito por IA.*
 
 </div>
